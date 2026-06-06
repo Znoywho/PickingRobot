@@ -28,15 +28,14 @@ print(occupied)
 
 MAX_ITEM_QUANTITY = 5
 COLLECTION_OF_ITEMS = []
-
+# ADD ITEMs TO EACH OF RACKS
 for r in racks:
     QUANTITY_OF_ITEM = np.random.randint(0, MAX_ITEM_QUANTITY + 1)
-    items = []
+    items = set()
     for _ in range(QUANTITY_OF_ITEM):
         item = np.random.randint(0, 80)
-        if item not in items:
-            items.append(item)
-    COLLECTION_OF_ITEMS.append(items)
+        items.add(item)
+    COLLECTION_OF_ITEMS.append(list(items))
 
 print("COLLECTION OF ITEMS")
 print(COLLECTION_OF_ITEMS)
