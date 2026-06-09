@@ -14,11 +14,11 @@ print(station)
 
 racks = set()
 occupied = []
-for r in range(S_WIDTH):
+for i in range(S_WIDTH):
     for j in range(S_HEIGHT):
-        if station[r][j] == 1:
-            racks.add((r, j))
-            occupied.append((r, j))
+        if station[i][j] == 1:
+            racks.add((i, j))
+            occupied.append((i, j))
 
 print("Position of Racks")
 print(racks)
