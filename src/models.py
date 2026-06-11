@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Set
+from typing import List, Set, Tuple
 import numpy as np
 
 
@@ -39,3 +39,6 @@ class NewInstance:
     racks: List[Rack]
     all_items: Set[int]
     capacity: int
+
+
+State = Tuple[Set[int], Set[int], Set[Tuple[int, int]]]
