@@ -40,5 +40,34 @@ class NewInstance:
     all_items: Set[int]
     capacity: int
 
+    def get_orders(self):
+        return self.orders
 
-State = Tuple[Set[int], Set[int], Set[Tuple[int, int]]]
+    def display_orders(self):
+        for i in self.orders:
+            print(i)
+
+    def get_order_by_id(self, id: int):
+        if id < 1 or id > len(self.orders) + 1:
+            raise IndexError("Out of the list of orders")
+
+        return self.orders[id]
+
+    def get_racks(self):
+        return self.racks
+
+    def display_racks(self):
+        for i in self.racks:
+            print(i)
+
+    def get_rack_by_id(self, id: int):
+        if id < 1 or id > len(self.racks) + 1:
+            raise IndexError("Out of the list of racks")
+        return self.racks[id - 1]
+
+
+State = Tuple[
+    Set[int],  # Completed Orders
+    Set[int],  # Uncompleted Orders
+    Set[Tuple[int, int]],  # To track missing Items -> Z ⊂ {(o, i)|o ∈ Y, i ∈ Io}
+]

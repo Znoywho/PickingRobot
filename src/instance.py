@@ -123,7 +123,7 @@ def Paper_Example() -> NewInstance:
     racks = []
     racks.append(Rack(id=1, items=set({2, 3})))  # r_1
     racks.append(Rack(id=2, items=set({1, 4})))  # r_2
-    racks.append(Rack(id=3, items=set({1, 4})))  # r_3
+    racks.append(Rack(id=3, items=set({5})))  # r_3
 
     # CAPACITY
     B = 2

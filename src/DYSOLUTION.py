@@ -12,3 +12,7 @@ class Dynamic_solution:
 
         self.capacity = self.inst.capacity
         self.orders = set(o.id for o in self.inst.orders)
+        self.racks = set(r.id for r in self.inst.racks)
+
+    def dynamic_programming(self):
+        pass
