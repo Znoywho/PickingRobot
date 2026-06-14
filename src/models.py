@@ -48,10 +48,10 @@ class NewInstance:
             print(i)
 
     def get_order_by_id(self, id: int):
-        if id < 1 or id > len(self.orders) + 1:
-            raise IndexError("Out of the list of orders")
-
-        return self.orders[id]
+        for o in self.orders:
+            if o.id == id:
+                return o
+        raise IndexError("Out of the list of racks")
 
     def get_racks(self):
         return self.racks
@@ -61,9 +61,10 @@ class NewInstance:
             print(i)
 
     def get_rack_by_id(self, id: int):
-        if id < 1 or id > len(self.racks) + 1:
-            raise IndexError("Out of the list of racks")
-        return self.racks[id - 1]
+        for r in self.racks:
+            if r.id == id:
+                return r
+        raise IndexError("Out of the list of racks")
 
 
 State = Tuple[
