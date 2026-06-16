@@ -33,7 +33,7 @@ def generate_instance(n_orders: int, n_racks: int, capacity: int, n_items: int, 
             )
         )
 
-        order = Order(id=o_id, items=order_items)
+        order = Order(id=o_id, items=frozenset(order_items))
         orders.append(order)
 
     print(f"ORDERS: \n{orders}")
@@ -54,7 +54,7 @@ def generate_instance(n_orders: int, n_racks: int, capacity: int, n_items: int, 
 
         rack_items = set(np.random.choice(list(used_items), size=avg_items_per_rack, replace=False))
 
-        rack = Rack(id=r_id, items=rack_items)
+        rack = Rack(id=r_id, items=frozenset(rack_items))
 
         racks.append(rack)
 
@@ -81,7 +81,7 @@ def generate_instance(n_orders: int, n_racks: int, capacity: int, n_items: int, 
 
         for i in remaining_items:
             rack_idx = np.random.randint(0, len(racks))
-            racks[rack_idx].items.add(i)
+            racks[rack_idx].items |= frozenset({i})
 
         print(f"RACKS AFTER REDOING:\n{racks}")
 
@@ -110,20 +110,20 @@ def Paper_Example() -> NewInstance:
 
     # MAKE ORDERS
     orders = []
-    orders.append(Order(id=1, items=set({4, 5})))  # o_1
-    orders.append(Order(id=2, items=set({1, 2, 4})))  # o_2
-    orders.append(Order(id=3, items=set({1, 2, 5})))  # o_3
-    orders.append(Order(id=4, items=set({2, 3})))  # o_4
-    orders.append(Order(id=5, items=set({1})))
-    orders.append(Order(id=6, items=set({1})))
-    orders.append(Order(id=7, items=set({2})))
-    orders.append(Order(id=8, items=set({1, 2, 3})))
+    orders.append(Order(id=1, items=frozenset({4, 5})))  # o_1
+    orders.append(Order(id=2, items=frozenset({1, 2, 4})))  # o_2
+    orders.append(Order(id=3, items=frozenset({1, 2, 5})))  # o_3
+    orders.append(Order(id=4, items=frozenset({2, 3})))  # o_4
+    orders.append(Order(id=5, items=frozenset({1})))
+    orders.append(Order(id=6, items=frozenset({1})))
+    orders.append(Order(id=7, items=frozenset({2})))
+    orders.append(Order(id=8, items=frozenset({1, 2, 3})))
 
     # MAKE RACKS
     racks = []
-    racks.append(Rack(id=1, items=set({2, 3})))  # r_1
-    racks.append(Rack(id=2, items=set({1, 4})))  # r_2
-    racks.append(Rack(id=3, items=set({5})))  # r_3
+    racks.append(Rack(id=1, items=frozenset({2, 3})))  # r_1
+    racks.append(Rack(id=2, items=frozenset({1, 4})))  # r_2
+    racks.append(Rack(id=3, items=frozenset({5})))  # r_3
 
     # CAPACITY
     B = 2
@@ -137,3 +137,5 @@ if __name__ == "__main__":
     print(example.all_items)
     print(example.orders)
     print(example.racks)
+
+    generate_instance(n_orders=10, n_racks=8, n_items=15, capacity=2)

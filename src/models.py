@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Set, Tuple
+from typing import FrozenSet, List, Set, Tuple
 import numpy as np
 
 
 @dataclass
 class Order:  # O
     id: int
-    items: Set[int]
+    items: FrozenSet[int]
 
     def __eq__(self, other):
         return self.id == other.id
@@ -21,7 +21,7 @@ class Order:  # O
 @dataclass
 class Rack:  # R
     id: int
-    items: Set[int]
+    items: FrozenSet[int]
 
     def __eq__(self, other):
         return self.id == other.id
@@ -68,7 +68,7 @@ class NewInstance:
 
 
 State = Tuple[
-    Set[int],  # Completed Orders
-    Set[int],  # Uncompleted Orders
-    Set[Tuple[int, int]],  # To track missing Items -> Z ⊂ {(o, i)|o ∈ Y, i ∈ Io}
+    FrozenSet[int],  # Completed Orders
+    FrozenSet[int],  # Uncompleted Orders
+    FrozenSet[Tuple[int, int]],  # To track missing Items -> Z ⊂ {(o, i)|o ∈ Y, i ∈ Io}
 ]
