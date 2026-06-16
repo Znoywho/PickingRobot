@@ -3,6 +3,8 @@ from typing import Dict, List, Set, Tuple
 from models import Order, Rack, NewInstance, State
 from instance import generate_instance, Paper_Example
 
+# TODO: The lower bound can be calculated by employing a MILP solver for **a set cover problem**
+
 
 class Dynamic_solution:
     def __init__(self, instance: NewInstance, time_limit: float = 600.0):
