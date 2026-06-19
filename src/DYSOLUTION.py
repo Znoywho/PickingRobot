@@ -18,7 +18,7 @@ class Dynamic_solution:
         self.orders = frozenset(o.id for o in self.inst.orders)
         self.racks = frozenset(r.id for r in self.inst.racks)
 
-        self.incubent = float("inf")  # best UPPER BOUND , INITIALLY = infinity,
+        self.incubent = float("inf")
         self.predoccess: Dict[int, State] = {}
         self.genarated_states: Set[State] = set()
         self.rack_visits_for_items: Dict[FrozenSet[int], int] = {}
@@ -65,24 +65,43 @@ class Dynamic_solution:
             print("====COMPLETED ALL ORDERS====")
         else:
             print("BUILDIND SUCCESSOR")
-            list_o_i = self._sort_order(Y, Z)
-            # for r_id in self.racks:
-            #     Z_1 = self.order_item_not_included_in_rack(r_id, Z)
-            #     print(Z_1)
-            #     Y_1 = self.partially_orders(Z_1, Y)
-            #     X_1 = self.completed_orders(X, Y_1, Y)
-            #
-            #     new_capacity = self.capacity - len(Y_1)
-            #
-            # if new_capacity == 0:
-            #     self.dynamic_programing((X_1, Y_1, Z_1), gamma + 1)
-            # else:
-            #     Z_2 = Z_1
-            #     Y_2 = Y_1
-            #
-            #     # O′ r ∶= {o ∈ O|Io ⊆ Ir }
-            #     # orders can be completed in this recent rack
-            #     O_r = self.extract_orders_can_canbe_completed(r_id)
+            # sorted_racks = self._sort_order(X, Y, Z)
+            for r_id in self.racks:
+                intem_not_contained_inRack = self.inst.all_items - self.inst.get_rack_by_id(r_id).items
+                Z_1 = set([(o_id, i_id) for (o_id, i_id) in Z if i_id not in intem_not_contained_inRack])
+                print(f"rack_id = {r_id}")
+                Y_1 = set()
+
+                for o_id in Y:
+                    I_o = self.inst.get_order_by_id(o_id).items
+                    # Yr (1) ← {o ∈ Y 0|∃i ∈ Io ∶ (o, i) ∈ Zr (1) }
+                    contain = set([(o_id, i_id) for i_id in I_o])
+                    if contain - Z_1:
+                        Y_1.add(o_id)
+                X_1 = X | frozenset(Y - Y_1)
+                print(f"Z_1: {Z_1}")
+                print(f"Y_1: {Y_1}")
+                print(f"X_1: {X_1}")
+
+                remaining_B = self.capacity - len(Y_1)
+                print(f"remaining bin: {remaining_B}")
+
+                if remaining_B == 0:
+                    self.dynamic_programing((frozenset(X_1), frozenset(Y_1), frozenset(Z_1)), gamma + 1)
+                else:
+                    Z_2 = Z_1
+                    Y_2 = Y_1
+                    O_r = self.processed_completely_by_r(r_id)
+                    X_2 = X_1 ^ O_r
+
+                    print(f"Z_2: {Z_2}")
+                    print(f"Y_2: {Y_2}")
+                    print(f"X_2: {X_2}")
+
+                    U_r = self.processed_partially_by_r(r_id)
+
+                    for u in U_r:
+                        pass
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set()
@@ -96,20 +115,20 @@ class Dynamic_solution:
         return I_res
 
     def compute_covering_set(self, ItemSet) -> int:
-        # TODO: find paper to solve
+        # TODO: read a source of code to visualize the mathematic beind it 
         problem = pulp.LpProblem("Set_Cover", pulp.LpMinimize)  # Find the smallest value
         x = {r: pulp.LpVariable(f"x_{r}", cat="Binary") for r in self.racks}
         problem += pulp.lpSum(x[r] for r in self.racks), "Sum of selected racks"
 
         for i in ItemSet:
-            covering_set = []
-            for r in self.inst.racks:
-                if i in r.items:
-                    covering_set.append(r)
-
-            problem += (pulp.lpSum(x[r.id] for r in covering_set) >= 1, f"phu_mon{i}")
+            covering_set = [r.id for r in self.inst.racks if i in r.items]
+            problem += (pulp.lpSum(x[r] for r in covering_set) >= 1, f"phu_mon{i}")
 
         problem.solve(pulp.PULP_CBC_CMD(msg=False))
+        print(pulp.LpStatus[problem.status])
+        selected_racks = [r for r in self.racks if x[r].value() == 1]
+        print("Selected racks:", selected_racks)
+
         return int(pulp.value(problem.objective))
 
     def order_item_not_included_in_rack(self, rack_id, Z_0):
@@ -147,20 +166,37 @@ class Dynamic_solution:
     #     for o in self.inst.orders:
     #         list_orders = o.items
 
-    def _sort_order(self, Y, Z):
+    def _sort_order(self, X, Y, Z):
         """
         Algorithm 1, line 14: Racks are sorted in descending order of the number of picks a rack can contribute to the uncompleted
         customer orders currently under processing in the service area (first priority). We resolve ties according to the number
         of picks a rack can contribute to the customer orders that are yet unprocessed (second priority). If there are still ties
         afterwards, a random order of the respective racks is used.
         """
-        sorted_racks: List[int] = []
 
-        # List: To save priority of uncompleted orders that are ordered by the number of contributions to number of orders
+        sorted_racks: Set[int] = set()
 
-        # for r in self.inst.racks:
+        missing = set([i_id for _, i_id in Z])
+        # {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z0 }
 
+        if len(Z):
+            for r in self.inst.racks:
+                missingItem_contained_rack = r.items - missing  # Ir ∩ missing
+                print(missingItem_contained_rack)
+
+                orders_have_item_inRack = [o.id for o in self.inst.orders if len(o.items - r.items)]  # O_r
+                print(orders_have_item_inRack)
+        else:
+            pass
         return sorted_racks
+
+    def processed_completely_by_r(self, r_id):
+        r = self.inst.get_rack_by_id(r_id)
+        orders_have_item_inRack = [o.id for o in self.inst.orders if len(o.items - r.items)]  # O_r
+        return set(orders_have_item_inRack)
+    
+
+    def processed_partially_by_r(self, r_id):
 
 
 ## TEST
@@ -175,8 +211,8 @@ if __name__ == "__main__":
     sl = Dynamic_solution(pp, 100.0)
 
     X = frozenset()
-    Y = frozenset()
-    Z = frozenset()
+    Y = frozenset([1, 2])
+    Z = frozenset([(1, 1), (1, 4), (2, 3)])
 
     sl.dynamic_programing((X, Y, Z), 1000)
 
