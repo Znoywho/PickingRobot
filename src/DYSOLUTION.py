@@ -19,7 +19,7 @@ class Dynamic_solution:
         self.racks = frozenset(r.id for r in self.inst.racks)
 
         self.incubent = float("inf")
-        self.predoccess: Dict[int, State] = {}
+        self.predecessor: Dict[State, Tuple[State, int]] = {}  # Help to reconstuct all states
         self.genarated_states: Set[State] = set()
         self.rack_visits_for_items: Dict[FrozenSet[int], int] = {}
         self.gamma_hat: Dict[State, int] = {}
@@ -65,7 +65,7 @@ class Dynamic_solution:
             print("====COMPLETED ALL ORDERS====")
         else:
             print("BUILDIND SUCCESSOR")
-            # sorted_racks = self._sort_order(X, Y, Z)
+            sorted_racks = self._sort_order(X, Y, Z)
             for r_id in self.racks:
                 intem_not_contained_inRack = self.inst.all_items - self.inst.get_rack_by_id(r_id).items
                 Z_1 = set([(o_id, i_id) for (o_id, i_id) in Z if i_id not in intem_not_contained_inRack])
@@ -87,21 +87,25 @@ class Dynamic_solution:
                 print(f"remaining bin: {remaining_B}")
 
                 if remaining_B == 0:
-                    self.dynamic_programing((frozenset(X_1), frozenset(Y_1), frozenset(Z_1)), gamma + 1)
+                    successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
+                    self.save_state(successor, state, r_id)
+                    self.dynamic_programing(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
                     Y_2 = Y_1
                     O_r = self.processed_completely_by_r(r_id)
-                    X_2 = X_1 ^ O_r
+                    X_2 = X_1 | O_r
 
                     print(f"Z_2: {Z_2}")
                     print(f"Y_2: {Y_2}")
                     print(f"X_2: {X_2}")
 
-                    U_r = self.processed_partially_by_r(r_id)
+                    X_3 = X_2
 
-                    for u in U_r:
-                        pass
+                    # U_r = self.processed_partially_by_r(r_id)
+                    #
+                    # for u in U_r:
+                    #     pass
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set()
@@ -115,7 +119,7 @@ class Dynamic_solution:
         return I_res
 
     def compute_covering_set(self, ItemSet) -> int:
-        # TODO: read a source of code to visualize the mathematic beind it 
+        # TODO: read a source of code to visualize the mathematic beind it
         problem = pulp.LpProblem("Set_Cover", pulp.LpMinimize)  # Find the smallest value
         x = {r: pulp.LpVariable(f"x_{r}", cat="Binary") for r in self.racks}
         problem += pulp.lpSum(x[r] for r in self.racks), "Sum of selected racks"
@@ -173,30 +177,39 @@ class Dynamic_solution:
         of picks a rack can contribute to the customer orders that are yet unprocessed (second priority). If there are still ties
         afterwards, a random order of the respective racks is used.
         """
-
+        # TODO: Sort rackk depend on the contribution
         sorted_racks: Set[int] = set()
+        # take rack with Ir ∩ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z0 } ≠ ∅ ∨ Or ⧵ (X0 ∪ Y 0 ) ≠ ∅
+        for r_id in self.racks:
+            item_current_service_area = set([i_id for o_id, i_id in Z if o_id in Y])
+            item_current_service_area |= set([self.processed_partially_by_r(r_id)])
 
-        missing = set([i_id for _, i_id in Z])
-        # {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z0 }
-
-        if len(Z):
-            for r in self.inst.racks:
-                missingItem_contained_rack = r.items - missing  # Ir ∩ missing
-                print(missingItem_contained_rack)
-
-                orders_have_item_inRack = [o.id for o in self.inst.orders if len(o.items - r.items)]  # O_r
-                print(orders_have_item_inRack)
-        else:
-            pass
         return sorted_racks
 
-    def processed_completely_by_r(self, r_id):
+    def processed_completely_by_r(self, r_id: int):
         r = self.inst.get_rack_by_id(r_id)
         orders_have_item_inRack = [o.id for o in self.inst.orders if len(o.items - r.items)]  # O_r
         return set(orders_have_item_inRack)
-    
 
     def processed_partially_by_r(self, r_id):
+        saved_orders = set()
+        current_rack = self.inst.get_rack_by_id(r_id)
+        # print("processed_partially_by_r")
+        for o in self.inst.orders:
+            # print(o.items & current_rack.items)
+            if len(o.items & current_rack.items) and o.id not in self.processed_completely_by_r(r_id):
+                saved_orders.add(o.id)
+
+        return saved_orders
+
+    def save_state(self, successor: State, predecessor: State, rack_id: int):
+        current_gamma = self.gamma_hat.get(successor, float("inf"))
+
+        pred_gamma = self.gamma_hat.get(predecessor, 0)
+
+        new_gamma = pred_gamma + 1
+        if new_gamma < current_gamma:
+            self.predecessor[successor] = (predecessor, rack_id)
 
 
 ## TEST
@@ -214,8 +227,8 @@ if __name__ == "__main__":
     Y = frozenset([1, 2])
     Z = frozenset([(1, 1), (1, 4), (2, 3)])
 
-    sl.dynamic_programing((X, Y, Z), 1000)
-
+    # sl.dynamic_programing((X, Y, Z), 1000)
+    sl.processed_partially_by_r(1)
     # X = frozenset()
     # Y = frozenset([1, 2, 3, 4, 5, 6, 7, 8])
     # Z = frozenset([(1, 2)])
