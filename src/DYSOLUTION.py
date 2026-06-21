@@ -3,7 +3,7 @@ import pulp
 from typing import Dict, FrozenSet, List, Set, Tuple
 from models import Order, Rack, NewInstance, State
 from instance import generate_instance, Paper_Example
-from sketch import inst
+from itertools import combinations
 
 # TODO: The lower bound can be calculated by employing a MILP solver for **a set cover problem**
 
@@ -66,9 +66,8 @@ class Dynamic_solution:
         else:
             print("BUILDIND SUCCESSOR")
             sorted_racks = self._sort_order(X, Y, Z)
-            for r_id in self.racks:
-                intem_not_contained_inRack = self.inst.all_items - self.inst.get_rack_by_id(r_id).items
-                Z_1 = set([(o_id, i_id) for (o_id, i_id) in Z if i_id not in intem_not_contained_inRack])
+            for r_id in sorted_racks:
+                Z_1 = set((o_id, i_id) for (o_id, i_id) in Z if i_id not in self.inst.get_rack_by_id(r_id).items)
                 print(f"rack_id = {r_id}")
                 Y_1 = set()
 
@@ -83,13 +82,13 @@ class Dynamic_solution:
                 print(f"Y_1: {Y_1}")
                 print(f"X_1: {X_1}")
 
-                remaining_B = self.capacity - len(Y_1)
-                print(f"remaining bin: {remaining_B}")
+                B_prime = self.capacity - len(Y_1)
+                print(f"remaining bin: {B_prime}")
 
-                if remaining_B == 0:
+                if B_prime == 0:
                     successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
-                    self.save_state(successor, state, r_id)
-                    self.dynamic_programing(successor, gamma + 1)
+                    if self.save_state(successor, state, r_id):
+                        self.dynamic_programing(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
                     Y_2 = Y_1
@@ -102,10 +101,29 @@ class Dynamic_solution:
 
                     X_3 = X_2
 
-                    # U_r = self.processed_partially_by_r(r_id)
-                    #
-                    # for u in U_r:
-                    #     pass
+                    O_r_partial = self.processed_partially_by_r(r_id)  # O_r (excludes O'_r already)
+                    candidates = sorted(O_r_partial - (X_2 | Y_2))  # O_r \ (X_2 ∪ Y_2)
+
+                    # generate ALL subsets U_r with |U_r| <= B_prime, largest first (per sorting rule)
+                    max_size = min(B_prime, len(candidates))
+                    for size in range(max_size, -1, -1):
+                        for U_r in combinations(candidates, size):
+                            U_r_set = set(U_r)
+                            Y_3 = Y_2 | U_r_set
+                            new_missing = set()
+                            for o_id in U_r_set:
+                                order_items = self.inst.get_order_by_id(o_id).items
+                                for i_id in order_items - self.inst.get_rack_by_id(r_id).items:
+                                    new_missing.add((o_id, i_id))
+                            Z_3 = Z_2 | frozenset(new_missing)
+
+                            successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
+                            if self.save_state(successor, state, r_id):
+                                self.dynamic_programing(successor, gamma + 1)
+                                # U_r = self.processed_partially_by_r(r_id)
+                                #
+                                # for u in U_r:
+                                #     pass
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set()
@@ -170,25 +188,49 @@ class Dynamic_solution:
     #     for o in self.inst.orders:
     #         list_orders = o.items
 
-    def _sort_order(self, X, Y, Z):
+    def _sort_order(self, X, Y, Z) -> List[int]:
         """
-        Algorithm 1, line 14: Racks are sorted in descending order of the number of picks a rack can contribute to the uncompleted
-        customer orders currently under processing in the service area (first priority). We resolve ties according to the number
-        of picks a rack can contribute to the customer orders that are yet unprocessed (second priority). If there are still ties
-        afterwards, a random order of the respective racks is used.
+        Sort racks by:
+          1) descending number of picks contributed to orders currently in Y (service area)
+          2) tie-break: descending number of picks contributed to unprocessed orders (O -  (X ∪ Y))
+          3) tie-break: random
+        Racks satisfying neither condition are pushed to the end (their order doesn't matter).
         """
-        # TODO: Sort rackk depend on the contribution
-        sorted_racks: Set[int] = set()
-        # take rack with Ir ∩ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z0 } ≠ ∅ ∨ Or ⧵ (X0 ∪ Y 0 ) ≠ ∅
-        for r_id in self.racks:
-            item_current_service_area = set([i_id for o_id, i_id in Z if o_id in Y])
-            item_current_service_area |= set([self.processed_partially_by_r(r_id)])
+        # items currently missing for orders in the service area: {i | ∃o∈Y : (o,i)∈Z}
+        missing_items_in_service_area = frozenset(i_id for (o_id, i_id) in Z if o_id in Y)
 
+        # orders not yet processed at all (neither completed nor in service area)
+        unprocessed_orders = [o for o in self.inst.orders if o.id not in X and o.id not in Y]
+
+        scored: List[Tuple[float, float, float, int]] = []  # (priority1, priority2, random_tiebreak, rack_id)
+
+        for r in self.inst.racks:
+            # priority 1: picks contributed to orders currently in service area
+            picks_for_Y = len(r.items & missing_items_in_service_area)
+
+            # priority 2: picks contributed to unprocessed orders
+            picks_for_unprocessed = sum(len(o.items & r.items) for o in unprocessed_orders)
+
+            # eligibility check (paper, Algorithm 1 line 14):
+            # Ir ∩ {missing items of Y} ≠ ∅  ∨  Or \ (X ∪ Y) ≠ ∅
+            O_r = self.processed_completely_by_r(r.id) | self.processed_partially_by_r(r.id)
+            eligible = bool(r.items & missing_items_in_service_area) or bool(O_r - (set(X) | set(Y)))
+
+            if not eligible:
+                # push ineligible racks to the very end: use -inf priorities
+                scored.append((float("-inf"), float("-inf"), np.random.random(), r.id))
+            else:
+                scored.append((picks_for_Y, picks_for_unprocessed, np.random.random(), r.id))
+
+        # sort descending on priority1, then priority2, then random tiebreak
+        scored.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
+
+        sorted_racks = [r_id for (_, _, _, r_id) in scored]
         return sorted_racks
 
     def processed_completely_by_r(self, r_id: int):
         r = self.inst.get_rack_by_id(r_id)
-        orders_have_item_inRack = [o.id for o in self.inst.orders if len(o.items - r.items)]  # O_r
+        orders_have_item_inRack = [o.id for o in self.inst.orders if o.items <= r.items]  # O_r
         return set(orders_have_item_inRack)
 
     def processed_partially_by_r(self, r_id):
@@ -202,14 +244,16 @@ class Dynamic_solution:
 
         return saved_orders
 
-    def save_state(self, successor: State, predecessor: State, rack_id: int):
+    def save_state(self, successor: State, predecessor: State, rack_id: int) -> bool:
         current_gamma = self.gamma_hat.get(successor, float("inf"))
-
         pred_gamma = self.gamma_hat.get(predecessor, 0)
-
         new_gamma = pred_gamma + 1
+
         if new_gamma < current_gamma:
+            self.gamma_hat[successor] = new_gamma
             self.predecessor[successor] = (predecessor, rack_id)
+            return True
+        return False
 
 
 ## TEST
@@ -228,11 +272,11 @@ if __name__ == "__main__":
     Z = frozenset([(1, 1), (1, 4), (2, 3)])
 
     # sl.dynamic_programing((X, Y, Z), 1000)
-    sl.processed_partially_by_r(1)
+    # sl.processed_partially_by_r(1)
     # X = frozenset()
     # Y = frozenset([1, 2, 3, 4, 5, 6, 7, 8])
     # Z = frozenset([(1, 2)])
-
+    sl._sort_order(X, Y, Z)
     # X1 = frozenset([1])
     # Y1 = frozenset([2, 3])
     # Z1 = frozenset([(1, 1)])
