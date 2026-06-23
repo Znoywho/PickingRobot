@@ -31,15 +31,17 @@ class Dynamic_solution:
     ):
         X, Y, Z = state
 
-        if state in self.genarated_states and gamma >= self.incubent:
-            print("already exit and greater")
-            return
+        if state in self.genarated_states:
+            if gamma >= self.incubent:
+                print("already exit or greater")
+                return
         # Ires  ← ∪o∈O⧵(X0 ∪Y 0 ) Io ∪ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z 0 }
         # Set of Itemsm are not currently on rack or available
         I_res = self.compute_missing_items(X, Y, Z)
         #
         I_res_key = frozenset(I_res)
         print(f"I_res: \n{I_res_key}")
+
         if I_res_key in self.rack_visits_for_items:
             Gamma_I_res = self.rack_visits_for_items[I_res_key]
             print(f"===I_res already exited!: {Gamma_I_res}===")
@@ -59,24 +61,27 @@ class Dynamic_solution:
             self.genarated_states.add(state)
             print("add new state")
             self.print_state(state)
-        #
         if self.orders == X:
-            self.incubent = gamma
-            print("====COMPLETED ALL ORDERS====")
+            if gamma < self.incubent:
+                self.incubent = gamma
+            print("✅ ====COMPLETED ALL ORDERS====")
+
         else:
             print("BUILDIND SUCCESSOR")
+            ## SORT RACK DEPEND OF CONTRIBUTION
             sorted_racks = self._sort_order(X, Y, Z)
+
+            print(sorted_racks)
             for r_id in sorted_racks:
                 Z_1 = set((o_id, i_id) for (o_id, i_id) in Z if i_id not in self.inst.get_rack_by_id(r_id).items)
                 print(f"rack_id = {r_id}")
                 Y_1 = set()
 
-                for o_id in Y:
-                    I_o = self.inst.get_order_by_id(o_id).items
-                    # Yr (1) ← {o ∈ Y 0|∃i ∈ Io ∶ (o, i) ∈ Zr (1) }
-                    contain = set([(o_id, i_id) for i_id in I_o])
-                    if contain - Z_1:
+                # Yr (1) ← {o ∈ Y 0|∃i ∈ Io ∶ (o, i) ∈ Zr (1) }
+                for o_id, i_id in Z_1:
+                    if i_id in self.inst.get_order_by_id(o_id).items:
                         Y_1.add(o_id)
+
                 X_1 = X | frozenset(Y - Y_1)
                 print(f"Z_1: {Z_1}")
                 print(f"Y_1: {Y_1}")
@@ -108,6 +113,7 @@ class Dynamic_solution:
                     max_size = min(B_prime, len(candidates))
                     for size in range(max_size, -1, -1):
                         for U_r in combinations(candidates, size):
+                            print(f"U_r: {U_r}")
                             U_r_set = set(U_r)
                             Y_3 = Y_2 | U_r_set
                             new_missing = set()
@@ -120,21 +126,21 @@ class Dynamic_solution:
                             successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
                             if self.save_state(successor, state, r_id):
                                 self.dynamic_programing(successor, gamma + 1)
-                                # U_r = self.processed_partially_by_r(r_id)
-                                #
-                                # for u in U_r:
-                                #     pass
+                            # U_r = self.processed_partially_by_r(r_id)
+                            #
+                            # for u in U_r:
+                            #     pass
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
-        I_res = set()
-
-        for o in self.inst.orders:
-            if o.id not in X and o.id not in Y:
-                I_res |= o.items
-        for _, item_id in Z:
-            I_res.add(item_id)
+        I_res = set([i_id for o_id, i_id in Z if o_id in Y])
+        temp = self.orders.difference(X | Y)
+        for o_id in temp:
+            I_res |= self.inst.get_order_by_id(o_id).items
 
         return I_res
+
+    def missing_items_in_service_area(self, Y, Z):
+        return set([i_id for o_id, i_id in Z if o_id in Y])
 
     def compute_covering_set(self, ItemSet) -> int:
         # TODO: read a source of code to visualize the mathematic beind it
@@ -255,6 +261,12 @@ class Dynamic_solution:
             return True
         return False
 
+    def extract_items_from_Z(self, Z):
+        return set([i_id for o_id, i_id in Z])
+
+    def extract_orders_from_Z(self, Z):
+        return set([o_id for o_id, i_id in Z])
+
 
 ## TEST
 if __name__ == "__main__":
@@ -268,8 +280,12 @@ if __name__ == "__main__":
     sl = Dynamic_solution(pp, 100.0)
 
     X = frozenset()
-    Y = frozenset([1, 2])
-    Z = frozenset([(1, 1), (1, 4), (2, 3)])
+    Y = frozenset()
+    Z = frozenset()
+
+    print(f"X: {X}")
+    print(f"Y: {Y}")
+    print(f"Z: {Z}")
 
     # sl.dynamic_programing((X, Y, Z), 1000)
     # sl.processed_partially_by_r(1)
@@ -277,6 +293,9 @@ if __name__ == "__main__":
     # Y = frozenset([1, 2, 3, 4, 5, 6, 7, 8])
     # Z = frozenset([(1, 2)])
     sl._sort_order(X, Y, Z)
+
+    sl.dynamic_programing((X, Y, Z), 0)
+    print(sl.incubent)
     # X1 = frozenset([1])
     # Y1 = frozenset([2, 3])
     # Z1 = frozenset([(1, 1)])
