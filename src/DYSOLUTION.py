@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import pulp
 from typing import Dict, FrozenSet, List, Set, Tuple
 from models import Order, Rack, NewInstance, State
@@ -23,6 +24,8 @@ class Dynamic_solution:
         self.genarated_states: Set[State] = set()
         self.rack_visits_for_items: Dict[FrozenSet[int], int] = {}
         self.gamma_hat: Dict[State, int] = {}
+
+        self.statistic = {"n_pruning": 0, "n_recursion": 0}
 
     def dynamic_programing(
         self,
@@ -53,6 +56,7 @@ class Dynamic_solution:
 
         if Gamma_I_res + gamma >= self.incubent:
             print("OVER LOWER BOUND")
+            self.statistic["n_pruning"] += 1
             return
 
         print("BELOW LOWER BOUND")
@@ -64,6 +68,8 @@ class Dynamic_solution:
         if self.orders == X:
             if gamma < self.incubent:
                 self.incubent = gamma
+                print(f"✅ ====NEW RECORD OF incubent: {self.incubent}====")
+
             print("✅ ====COMPLETED ALL ORDERS====")
 
         else:
@@ -93,6 +99,7 @@ class Dynamic_solution:
                 if B_prime == 0:
                     successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
                     if self.save_state(successor, state, r_id):
+                        self.statistic["n_recursion"] += 1
                         self.dynamic_programing(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
@@ -125,11 +132,47 @@ class Dynamic_solution:
 
                             successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
                             if self.save_state(successor, state, r_id):
+                                self.statistic["n_recursion"] += 1
                                 self.dynamic_programing(successor, gamma + 1)
                             # U_r = self.processed_partially_by_r(r_id)
                             #
                             # for u in U_r:
                             #     pass
+
+    def run_DP(self):
+        now = time.perf_counter()
+
+        pp = Paper_Example()
+        print(f"ITEMS: {pp.all_items}")
+        print("ORDERS:")
+        pp.display_orders()
+        print("RACKS:")
+        pp.display_racks()
+
+        new = generate_instance(n_items=100, n_orders=30, n_racks=20, capacity=3)
+        sl = Dynamic_solution(new, 100.0)
+
+        X = frozenset()
+        Y = frozenset()
+        Z = frozenset()
+
+        print(f"X: {X}")
+        print(f"Y: {Y}")
+        print(f"Z: {Z}")
+
+        # sl.dynamic_programing((X, Y, Z), 1000)
+        # sl.processed_partially_by_r(1)
+        # X = frozenset()
+        # Z = frozenset([(1, 2)])
+
+        sl.dynamic_programing((X, Y, Z), 0)
+        end = time.perf_counter()
+        print(sl.incubent)
+        sl.reconstuct()
+
+        print(end - now)
+
+        print(sl.statistic["n_pruning"] / sl.statistic["n_recursion"])
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set([i_id for o_id, i_id in Z if o_id in Y])
@@ -217,7 +260,6 @@ class Dynamic_solution:
             # priority 2: picks contributed to unprocessed orders
             picks_for_unprocessed = sum(len(o.items & r.items) for o in unprocessed_orders)
 
-            # eligibility check (paper, Algorithm 1 line 14):
             # Ir ∩ {missing items of Y} ≠ ∅  ∨  Or \ (X ∪ Y) ≠ ∅
             O_r = self.processed_completely_by_r(r.id) | self.processed_partially_by_r(r.id)
             eligible = bool(r.items & missing_items_in_service_area) or bool(O_r - (set(X) | set(Y)))
@@ -267,6 +309,22 @@ class Dynamic_solution:
     def extract_orders_from_Z(self, Z):
         return set([o_id for o_id, i_id in Z])
 
+    def reconstuct(self):
+        # FINAL STATE
+        final_state = (self.orders, frozenset(), frozenset())
+        initial_state = (frozenset(), frozenset(), frozenset())
+        successor = self.predecessor[final_state]
+        list_of_states = []
+        list_of_states.append((successor[1], successor[0]))
+        while successor[0] != initial_state:
+            successor = self.predecessor[successor[0]]
+            list_of_states.append((successor[1], successor[0]))
+
+        reversed_List = list_of_states[::-1]
+        for s in reversed_List:
+            self.print_state(s[1])
+            print(f"Rack ID: {s[0]}")
+
 
 ## TEST
 if __name__ == "__main__":
@@ -277,25 +335,28 @@ if __name__ == "__main__":
     print("RACKS:")
     pp.display_racks()
 
-    sl = Dynamic_solution(pp, 100.0)
+    new = generate_instance(n_items=20, n_orders=30, n_racks=20, capacity=3)
+    sl = Dynamic_solution(new, 100.0)
 
-    X = frozenset()
-    Y = frozenset()
-    Z = frozenset()
-
-    print(f"X: {X}")
-    print(f"Y: {Y}")
-    print(f"Z: {Z}")
-
-    # sl.dynamic_programing((X, Y, Z), 1000)
-    # sl.processed_partially_by_r(1)
+    sl.run_DP()
     # X = frozenset()
-    # Y = frozenset([1, 2, 3, 4, 5, 6, 7, 8])
-    # Z = frozenset([(1, 2)])
-    sl._sort_order(X, Y, Z)
-
-    sl.dynamic_programing((X, Y, Z), 0)
-    print(sl.incubent)
+    # Y = frozenset()
+    # Z = frozenset()
+    #
+    # print(f"X: {X}")
+    # print(f"Y: {Y}")
+    # print(f"Z: {Z}")
+    #
+    # # sl.dynamic_programing((X, Y, Z), 1000)
+    # # sl.processed_partially_by_r(1)
+    # # X = frozenset()
+    # # Z = frozenset([(1, 2)])
+    #
+    # sl.dynamic_programing((X, Y, Z), 0)
+    # print(sl.incubent)
+    # sl.reconstuct()
+    #
+    # print(sl.statistic["n_pruning"] / sl.statistic["n_recursion"])
     # X1 = frozenset([1])
     # Y1 = frozenset([2, 3])
     # Z1 = frozenset([(1, 1)])
