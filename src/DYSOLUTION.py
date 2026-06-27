@@ -38,7 +38,7 @@ class Dynamic_solution:
 
         self._processed_completely_cache: Dict[int, Set[int]] = {}
         self._processed_partially_cache: Dict[int, Set[int]] = {}
-        # self.debug_mode = False  # Control print statements
+
 
     def dynamic_programing(
         self,
@@ -47,6 +47,10 @@ class Dynamic_solution:
     ):
         self.statistic["n_states_explored"] += 1
         X, Y, Z = state
+
+        if time.perf_counter() - self.start_time > self.time_limit:
+            print("TIME LIMIT EXCEEDED")
+            return
 
         if state in self.genarated_states:
             if gamma >= self.incubent:
@@ -151,10 +155,7 @@ class Dynamic_solution:
                             if self.save_state(successor, state, r_id):
                                 # self.statistic["n_recursion"] += 1
                                 self.dynamic_programing(successor, gamma + 1)
-                            # U_r = self.processed_partially_by_r(r_id)
-                            #
-                            # for u in U_r:
-                            #     pass
+    
 
     def run_DP(self):
         now = time.perf_counter()
@@ -165,12 +166,19 @@ class Dynamic_solution:
 
         self.dynamic_programing((X, Y, Z), 0)
         end = time.perf_counter()
-        print(self.incubent)
+        
         self.reconstuct()
 
-        print(end - now)
+        self.statistic["total_runtime"] = end - now
+        print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
 
-        print(f"{self.statistic['n_pruning'] / self.statistic['n_recursion']}%")
+        print(f"Percent of pruned states: {self.statistic['n_pruning'] / self.statistic['n_states_explored'] * 100:.2f}%")
+        print(f"Number of cached solver calls: {self.statistic['n_solver_cached']}")
+        print(f"Number of unique states generated: {self.statistic['n_states_generated']}")
+        print(f"Number of states explored: {self.statistic['n_states_explored']}")
+        print(f"Number of solver calls: {self.statistic['n_solver_calls']}")
+        print(f"Incumbent solution(Number of Racks): {self.incubent}")
+        # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set([i_id for o_id, i_id in Z if o_id in Y])
@@ -191,7 +199,7 @@ class Dynamic_solution:
 
         for i in ItemSet:
             covering_set = [r.id for r in self.inst.racks if i in r.items]
-            problem += (pulp.lpSum(x[r] for r in covering_set) >= 1, f"phu_mon{i}")
+            problem += (pulp.lpSum(x[r] for r in covering_set) >= 1, f"cover_item_{i}")
 
         problem.solve(pulp.PULP_CBC_CMD(msg=False))
         print(pulp.LpStatus[problem.status])
@@ -228,12 +236,6 @@ class Dynamic_solution:
 
     def print_state(self, s: State):
         print(f"X:{s[0]}\nY:{s[1]}\nZ:{s[2]}")
-
-    # def extract_orders_can_canbe_completed(self, r_id: int) -> Set[int]:
-    #     order_canbe_completed: Set[int] = set()
-    #
-    #     for o in self.inst.orders:
-    #         list_orders = o.items
 
     def _sort_order(self, X, Y, Z) -> List[int]:
         """
@@ -316,20 +318,64 @@ class Dynamic_solution:
         return set([o_id for o_id, i_id in Z])
 
     def reconstuct(self):
-        # FINAL STATE
         final_state = (self.orders, frozenset(), frozenset())
         initial_state = (frozenset(), frozenset(), frozenset())
+
+        if final_state not in self.predecessor:
+            print("No solution found (time limit or infeasible).")
+            return
+
+        
         successor = self.predecessor[final_state]
-        list_of_states = []
-        list_of_states.append((successor[1], successor[0]))
+        path = []  # list of (rack_id, state)
+        path.append((successor[1], successor[0]))
+
         while successor[0] != initial_state:
             successor = self.predecessor[successor[0]]
-            list_of_states.append((successor[1], successor[0]))
+            path.append((successor[1], successor[0]))
 
-        reversed_List = list_of_states[::-1]
-        for s in reversed_List:
-            self.print_state(s[1])
-            print(f"Rack ID: {s[0]}")
+        path = path[::-1]  
+
+        print("\n" + "=" * 60)
+        print("SOLUTION RECONSTRUCTION")
+        print(f"Total rack visits: {len(path)}")
+        print("=" * 60)
+
+        prev_X = frozenset() 
+
+        for step, (rack_id, state) in enumerate(path, start=1):
+            X, Y, Z = state
+            rack = self.inst.get_rack_by_id(rack_id)
+
+            # order completed at this rack: X - prev_X
+            newly_completed = X - prev_X
+
+            print(f"\n🔹 Step {step}: Rack {rack_id}")
+            print(f"   Items in rack : {sorted(rack.items)}")
+
+            if newly_completed:
+                print(f"   Orders completed at this rack:")
+                for o_id in sorted(newly_completed):
+                    order = self.inst.get_order_by_id(o_id)
+                    print(f"      Order {o_id}: needs items {sorted(order.items)}")
+            else:
+                print(f"No orders completed yet (partial pick)")
+
+            if Y:
+                print(f"Orders still in service area (Y): {sorted(Y)}")
+                for o_id in sorted(Y):
+                    missing = set(o_id_z for o_id_z, i_id in Z if o_id_z == o_id)
+                    if missing:
+                        order = self.inst.get_order_by_id(o_id)
+                        remaining_items = {i_id for o_z, i_id in Z if o_z == o_id}
+                        print(f"Order {o_id}: still missing items {sorted(remaining_items)}")
+
+            prev_X = X  # Update prev_X for the next iteration
+
+        print("\n" + "=" * 60)
+        print(f"All orders completed: {sorted(self.orders)}")
+        print("=" * 60)
+            
 
 
 ## TEST
@@ -341,7 +387,7 @@ if __name__ == "__main__":
     print("RACKS:")
     pp.display_racks()
 
-    new = generate_instance(n_items=100, n_orders=25, n_racks=25, capacity=3)
-    sl = Dynamic_solution(new, 100.0)
+    new = generate_instance(n_items= 100, n_orders=50, n_racks=25, capacity=3)
+    sl = Dynamic_solution(new, 200)
 
     sl.run_DP()
