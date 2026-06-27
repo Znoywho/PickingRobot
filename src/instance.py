@@ -50,9 +50,9 @@ def generate_instance(n_orders: int, n_racks: int, capacity: int, n_items: int, 
     for r_id in range(1, n_racks + 1):
         possion = np.random.poisson(avg_items_per_rack - 1)
         n_items_in_rack = max(1, possion + 1)
+        
         n_items_in_rack = min(n_items_in_rack, len(used_items))
-
-        rack_items = set(np.random.choice(list(used_items), size=avg_items_per_rack, replace=False))
+        rack_items = set(np.random.choice(list(used_items), size=n_items_in_rack, replace=False))
 
         rack = Rack(id=r_id, items=frozenset(rack_items))
 
