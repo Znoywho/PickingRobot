@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import json
 import time
 import pulp
 from typing import Dict, FrozenSet, List, Set, Tuple
@@ -19,26 +21,24 @@ class Dynamic_solution:
         self.orders = frozenset(o.id for o in self.inst.orders)
         self.racks = frozenset(r.id for r in self.inst.racks)
 
-        self.incubent = float("inf")
+        self.imcubent = float("inf")
         self.predecessor: Dict[State, Tuple[State, int]] = {}  # Help to reconstuct all states
         self.genarated_states: Set[State] = set()
         self.rack_visits_for_items: Dict[FrozenSet[int], int] = {}
         self.gamma_hat: Dict[State, int] = {}
-
-        self.statistic = {
-            "n_pruning": 0,
-            "n_states_generated": 0,  # số state duy nhất được tạo
-            "n_states_explored": 0,   # số lần gọi DP (kể cả lặp)
-            "n_solver_calls": 0,      # số lần gọi MILP solver
-            "n_solver_cached": 0,     # số lần dùng cache thay vì gọi solver
-            "total_runtime": 0.0,
-            "solver_time": 0.0,
-        }
-        self.start_time = None
-
         self._processed_completely_cache: Dict[int, Set[int]] = {}
         self._processed_partially_cache: Dict[int, Set[int]] = {}
 
+        self.start_time = None
+        self.statistic = {
+            "n_pruning": 0,
+            "n_states_generated": 0,  # số state duy nhất được tạo
+            "n_states_explored": 0,  # số lần gọi DP (kể cả lặp)
+            "n_solver_calls": 0,  # số lần gọi MILP solver
+            "n_solver_cached": 0,  # số lần dùng cache thay vì gọi solver
+            "total_runtime": 0.0,
+            "imcubent": 0,
+        }
 
     def dynamic_programing(
         self,
@@ -53,7 +53,7 @@ class Dynamic_solution:
             return
 
         if state in self.genarated_states:
-            if gamma >= self.incubent:
+            if gamma >= self.imcubent:
                 print("already exit or greater")
                 return
         # Ires  ← ∪o∈O⧵(X0 ∪Y 0 ) Io ∪ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z 0 }
@@ -74,7 +74,7 @@ class Dynamic_solution:
             Gamma_I_res = self.rack_visits_for_items[I_res_key]
             print(f"===New I_res!: {Gamma_I_res}===")
 
-        if Gamma_I_res + gamma >= self.incubent:
+        if Gamma_I_res + gamma >= self.imcubent:
             print("OVER LOWER BOUND")
             self.statistic["n_pruning"] += 1
             return
@@ -87,9 +87,10 @@ class Dynamic_solution:
             print("add new state")
             self.print_state(state)
         if self.orders == X:
-            if gamma < self.incubent:
-                self.incubent = gamma
-                print(f"✅ ====NEW RECORD OF incubent: {self.incubent}====")
+            if gamma < self.imcubent:
+                self.imcubent = gamma
+                self.statistic["imcubent"] = gamma
+                print(f"✅ ====NEW RECORD OF incubent: {self.imcubent}====")
 
             print("✅ ====COMPLETED ALL ORDERS====")
 
@@ -155,7 +156,6 @@ class Dynamic_solution:
                             if self.save_state(successor, state, r_id):
                                 # self.statistic["n_recursion"] += 1
                                 self.dynamic_programing(successor, gamma + 1)
-    
 
     def run_DP(self):
         now = time.perf_counter()
@@ -166,18 +166,20 @@ class Dynamic_solution:
 
         self.dynamic_programing((X, Y, Z), 0)
         end = time.perf_counter()
-        
+
         self.reconstuct()
 
         self.statistic["total_runtime"] = end - now
         print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
 
-        print(f"Percent of pruned states: {self.statistic['n_pruning'] / self.statistic['n_states_explored'] * 100:.2f}%")
+        print(
+            f"Percent of pruned states: {self.statistic['n_pruning'] / self.statistic['n_states_explored'] * 100:.2f}%"
+        )
         print(f"Number of cached solver calls: {self.statistic['n_solver_cached']}")
         print(f"Number of unique states generated: {self.statistic['n_states_generated']}")
         print(f"Number of states explored: {self.statistic['n_states_explored']}")
         print(f"Number of solver calls: {self.statistic['n_solver_calls']}")
-        print(f"Incumbent solution(Number of Racks): {self.incubent}")
+        print(f"Incumbent solution(Number of Racks): {self.imcubent}")
         # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
@@ -279,7 +281,7 @@ class Dynamic_solution:
     def processed_completely_by_r(self, r_id: int):
         if r_id in self._processed_completely_cache:
             return self._processed_completely_cache[r_id]
-        
+
         r = self.inst.get_rack_by_id(r_id)
         result = set(o.id for o in self.inst.orders if o.items <= r.items)
         self._processed_completely_cache[r_id] = result
@@ -325,7 +327,6 @@ class Dynamic_solution:
             print("No solution found (time limit or infeasible).")
             return
 
-        
         successor = self.predecessor[final_state]
         path = []  # list of (rack_id, state)
         path.append((successor[1], successor[0]))
@@ -334,14 +335,14 @@ class Dynamic_solution:
             successor = self.predecessor[successor[0]]
             path.append((successor[1], successor[0]))
 
-        path = path[::-1]  
+        path = path[::-1]
 
         print("\n" + "=" * 60)
         print("SOLUTION RECONSTRUCTION")
         print(f"Total rack visits: {len(path)}")
         print("=" * 60)
 
-        prev_X = frozenset() 
+        prev_X = frozenset()
 
         for step, (rack_id, state) in enumerate(path, start=1):
             X, Y, Z = state
@@ -350,16 +351,16 @@ class Dynamic_solution:
             # order completed at this rack: X - prev_X
             newly_completed = X - prev_X
 
-            print(f"\n🔹 Step {step}: Rack {rack_id}")
-            print(f"   Items in rack : {sorted(rack.items)}")
+            print(f"\nStep {step}: Rack {rack_id}")
+            print(f"Items in rack : {sorted(rack.items)}")
 
             if newly_completed:
-                print(f"   Orders completed at this rack:")
+                print("Orders completed at this rack:")
                 for o_id in sorted(newly_completed):
                     order = self.inst.get_order_by_id(o_id)
-                    print(f"      Order {o_id}: needs items {sorted(order.items)}")
+                    print(f"Order {o_id}: needs items {sorted(order.items)}")
             else:
-                print(f"No orders completed yet (partial pick)")
+                print("No orders completed yet (partial pick)")
 
             if Y:
                 print(f"Orders still in service area (Y): {sorted(Y)}")
@@ -375,7 +376,12 @@ class Dynamic_solution:
         print("\n" + "=" * 60)
         print(f"All orders completed: {sorted(self.orders)}")
         print("=" * 60)
-            
+
+    def save_sample_matric(self, filename):
+        data = self.statistic
+        os.makedirs("output", exist_ok=True)
+        with open(f"output/{filename}.json", "a") as file:
+            json.dump(data, file, indent=4)
 
 
 ## TEST
@@ -387,7 +393,9 @@ if __name__ == "__main__":
     print("RACKS:")
     pp.display_racks()
 
-    new = generate_instance(n_items= 100, n_orders=50, n_racks=25, capacity=3)
-    sl = Dynamic_solution(new, 200)
+    new = generate_instance(n_items=100, n_orders=50, n_racks=25, capacity=3)
+    sl = Dynamic_solution(pp, 200)
 
     sl.run_DP()
+
+    sl.save_sample_matric("PPstatistic")

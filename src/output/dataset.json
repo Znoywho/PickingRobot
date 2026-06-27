@@ -1,0 +1,33 @@
+{
+    "n_pruning": 36694,
+    "n_states_generated": 3598,
+    "n_states_explored": 40340,
+    "n_solver_calls": 1047,
+    "n_solver_cached": 39291,
+    "total_runtime": 11.419298067001364,
+    "imcubent": 9
+}{
+    "n_pruning": 427,
+    "n_states_generated": 8,
+    "n_states_explored": 438,
+    "n_solver_calls": 51,
+    "n_solver_cached": 387,
+    "total_runtime": 0.281764737002959,
+    "imcubent": 5
+}{
+    "n_pruning": 1522,
+    "n_states_generated": 51,
+    "n_states_explored": 1577,
+    "n_solver_calls": 192,
+    "n_solver_cached": 1385,
+    "total_runtime": 1.2665685810025025,
+    "imcubent": 7
+}{
+    "n_pruning": 892,
+    "n_states_generated": 15,
+    "n_states_explored": 908,
+    "n_solver_calls": 169,
+    "n_solver_cached": 739,
+    "total_runtime": 1.3107541870012938,
+    "imcubent": 7
+}
