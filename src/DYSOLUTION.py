@@ -21,13 +21,16 @@ class Dynamic_solution:
         self.orders = frozenset(o.id for o in self.inst.orders)
         self.racks = frozenset(r.id for r in self.inst.racks)
 
-        self.imcubent = float("inf")
+        self.incumbent = float("inf")
         self.predecessor: Dict[State, Tuple[State, int]] = {}  # Help to reconstuct all states
         self.genarated_states: Set[State] = set()
         self.rack_visits_for_items: Dict[FrozenSet[int], int] = {}
         self.gamma_hat: Dict[State, int] = {}
         self._processed_completely_cache: Dict[int, Set[int]] = {}
         self._processed_partially_cache: Dict[int, Set[int]] = {}
+        # GRAPH
+        self.pruning_history: List[Tuple[float, float]] = []
+        self.incumbent_history: List[Tuple[float, int]] = []
 
         self.start_time = None
         self.statistic = {
@@ -53,8 +56,11 @@ class Dynamic_solution:
             return
 
         if state in self.genarated_states:
-            if gamma >= self.imcubent:
+            if gamma >= self.incumbent:
                 print("already exit or greater")
+                explored = self.statistic["n_states_explored"]
+                pruned = self.statistic["n_pruning"]
+                self.pruning_history.append((time.perf_counter() - self.start_time, pruned / explored * 100))
                 return
         # Ires  ← ∪o∈O⧵(X0 ∪Y 0 ) Io ∪ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z 0 }
         # Set of Itemsm are not currently on rack or available
@@ -74,9 +80,10 @@ class Dynamic_solution:
             Gamma_I_res = self.rack_visits_for_items[I_res_key]
             print(f"===New I_res!: {Gamma_I_res}===")
 
-        if Gamma_I_res + gamma >= self.imcubent:
+        if Gamma_I_res + gamma >= self.incumbent:
             print("OVER LOWER BOUND")
             self.statistic["n_pruning"] += 1
+
             return
 
         print("BELOW LOWER BOUND")
@@ -87,10 +94,11 @@ class Dynamic_solution:
             print("add new state")
             self.print_state(state)
         if self.orders == X:
-            if gamma < self.imcubent:
-                self.imcubent = gamma
+            if gamma < self.incumbent:
+                self.incumbent = gamma
                 self.statistic["imcubent"] = gamma
-                print(f"✅ ====NEW RECORD OF incubent: {self.imcubent}====")
+                print(f"✅ ====NEW RECORD OF incubent: {self.incumbent}====")
+                self.incumbent_history.append((time.perf_counter() - self.start_time, gamma))
 
             print("✅ ====COMPLETED ALL ORDERS====")
 
@@ -157,6 +165,18 @@ class Dynamic_solution:
                                 # self.statistic["n_recursion"] += 1
                                 self.dynamic_programing(successor, gamma + 1)
 
+    def result(self):
+        print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
+
+        print(
+            f"Percent of pruned states: {self.statistic['n_pruning'] / self.statistic['n_states_explored'] * 100:.2f}%"
+        )
+        print(f"Number of cached solver calls: {self.statistic['n_solver_cached']}")
+        print(f"Number of unique states generated: {self.statistic['n_states_generated']}")
+        print(f"Number of states explored: {self.statistic['n_states_explored']}")
+        print(f"Number of solver calls: {self.statistic['n_solver_calls']}")
+        print(f"Incumbent solution(Number of Racks): {self.incumbent}")
+
     def run_DP(self):
         now = time.perf_counter()
         self.start_time = now
@@ -170,17 +190,9 @@ class Dynamic_solution:
         self.reconstuct()
 
         self.statistic["total_runtime"] = end - now
-        print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
-
-        print(
-            f"Percent of pruned states: {self.statistic['n_pruning'] / self.statistic['n_states_explored'] * 100:.2f}%"
-        )
-        print(f"Number of cached solver calls: {self.statistic['n_solver_cached']}")
-        print(f"Number of unique states generated: {self.statistic['n_states_generated']}")
-        print(f"Number of states explored: {self.statistic['n_states_explored']}")
-        print(f"Number of solver calls: {self.statistic['n_solver_calls']}")
-        print(f"Incumbent solution(Number of Racks): {self.imcubent}")
         # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
+
+        self.result()
 
     def compute_missing_items(self, X, Y, Z) -> Set[int]:
         I_res = set([i_id for o_id, i_id in Z if o_id in Y])
