@@ -129,7 +129,6 @@ class Dynamic_solution:
                 if B_prime == 0:
                     successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
                     if self.save_state(successor, state, r_id):
-                        # self.statistic["n_recursion"] += 1
                         self.dynamic_programing(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
@@ -143,22 +142,153 @@ class Dynamic_solution:
 
                     X_3 = X_2
 
-                    O_r_partial = self.processed_partially_by_r(r_id)  # O_r (excludes O'_r already)
-                    candidates = sorted(O_r_partial - (X_2 | Y_2))  # O_r \ (X_2 ∪ Y_2)
+                    rack_items = self.inst.get_rack_by_id(r_id).items
 
-                    # generate ALL subsets U_r with |U_r| <= B_prime, largest first (per sorting rule)
+                    O_r_partial = self.processed_partially_by_r(r_id)  # O_r \ O'_r
+                    candidates = [
+                        (o_id, self.inst.get_order_by_id(o_id).items) for o_id in sorted(O_r_partial - (X_2 | Y_2))
+                    ]
+
+                    Z_2_updated = frozenset((o_id, i_id) for (o_id, i_id) in Z_2 if i_id not in rack_items)
+
                     max_size = min(B_prime, len(candidates))
                     for size in range(max_size, -1, -1):
-                        for U_r in combinations(candidates, size):
-                            print(f"U_r: {U_r}")
-                            U_r_set = set(U_r)
-                            Y_3 = Y_2 | U_r_set
+                        for U_r_comb in combinations(candidates, size):
+                            U_r_ids = set(o_id for o_id, _ in U_r_comb)
+                            Y_3 = Y_2 | U_r_ids
+
                             new_missing = set()
-                            for o_id in U_r_set:
-                                order_items = self.inst.get_order_by_id(o_id).items
-                                for i_id in order_items - self.inst.get_rack_by_id(r_id).items:
+                            for o_id, o_items in U_r_comb:
+                                for i_id in o_items - rack_items:
                                     new_missing.add((o_id, i_id))
-                            Z_3 = Z_2 | frozenset(new_missing)
+
+                            Z_3 = Z_2_updated | frozenset(new_missing)
+
+                            successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
+                            if self.save_state(successor, state, r_id):
+                                # self.statistic["n_recursion"] += 1
+                                self.dynamic_programing(successor, gamma + 1)
+
+    def dynamic_programing_without(
+        self,
+        state: State,  # (X^0 , Y^0 , Z^0, 𝛾^0)
+        gamma,  # HELP to track suboptimal: If sub-solution is larger than upper bound -> stop
+    ):
+        self.statistic["n_states_explored"] += 1
+        X, Y, Z = state
+
+        if time.perf_counter() - self.start_time > self.time_limit:
+            print("TIME LIMIT EXCEEDED")
+            return
+
+        if state in self.genarated_states:
+            if gamma >= self.incumbent:
+                print("already exit or greater")
+                explored = self.statistic["n_states_explored"]
+                pruned = self.statistic["n_pruning"]
+                self.pruning_history.append((time.perf_counter() - self.start_time, pruned / explored * 100))
+                return
+        # Ires  ← ∪o∈O⧵(X0 ∪Y 0 ) Io ∪ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z 0 }
+        # Set of Itemsm are not currently on rack or available
+        # I_res = self.compute_missing_items(X, Y, Z)
+        # #
+        # I_res_key = frozenset(I_res)
+        # print(f"I_res: \n{I_res_key}")
+        #
+        # if I_res_key in self.rack_visits_for_items:
+        #     Gamma_I_res = self.rack_visits_for_items[I_res_key]
+        #     print(f"===I_res already exited!: {Gamma_I_res}===")
+        #     self.statistic["n_solver_cached"] += 1
+        # else:
+        #     self.statistic["n_solver_calls"] += 1
+        #     rackVisit = self.compute_covering_set(I_res_key)
+        #     self.rack_visits_for_items[I_res_key] = rackVisit
+        #     Gamma_I_res = self.rack_visits_for_items[I_res_key]
+        #     print(f"===New I_res!: {Gamma_I_res}===")
+        #
+        # if Gamma_I_res + gamma >= self.incumbent:
+        #     print("OVER LOWER BOUND")
+        #     self.statistic["n_pruning"] += 1
+        #
+        #     return
+        #
+        # print("BELOW LOWER BOUND")
+
+        if state not in self.genarated_states:
+            self.genarated_states.add(state)
+            self.statistic["n_states_generated"] += 1
+            print("add new state")
+            self.print_state(state)
+        if self.orders == X:
+            if gamma < self.incumbent:
+                self.incumbent = gamma
+                self.statistic["imcubent"] = gamma
+                print(f"✅ ====NEW RECORD OF incubent: {self.incumbent}====")
+                self.incumbent_history.append((time.perf_counter() - self.start_time, gamma))
+
+            print("✅ ====COMPLETED ALL ORDERS====")
+
+        else:
+            print("BUILDIND SUCCESSOR")
+            ## SORT RACK DEPEND OF CONTRIBUTION
+            sorted_racks = self._sort_order(X, Y, Z)
+
+            print(sorted_racks)
+            for r_id in sorted_racks:
+                Z_1 = set((o_id, i_id) for (o_id, i_id) in Z if i_id not in self.inst.get_rack_by_id(r_id).items)
+                print(f"rack_id = {r_id}")
+
+                Y_1 = self.extract_orders_from_Z(Z_1)
+                # Yr (1) ← {o ∈ Y 0|∃i ∈ Io ∶ (o, i) ∈ Zr (1) }
+                # for o_id, i_id in Z_1:
+                #     if i_id in self.inst.get_order_by_id(o_id).items:
+                #         Y_1.add(o_id)
+
+                X_1 = X | frozenset(Y - Y_1)
+                print(f"Z_1: {Z_1}")
+                print(f"Y_1: {Y_1}")
+                print(f"X_1: {X_1}")
+
+                B_prime = self.capacity - len(Y_1)
+                print(f"remaining bin: {B_prime}")
+
+                if B_prime == 0:
+                    successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
+                    if self.save_state(successor, state, r_id):
+                        self.dynamic_programing(successor, gamma + 1)
+                else:
+                    Z_2 = Z_1
+                    Y_2 = Y_1
+                    O_r = self.processed_completely_by_r(r_id)
+                    X_2 = X_1 | O_r
+
+                    print(f"Z_2: {Z_2}")
+                    print(f"Y_2: {Y_2}")
+                    print(f"X_2: {X_2}")
+
+                    X_3 = X_2
+
+                    rack_items = self.inst.get_rack_by_id(r_id).items
+
+                    O_r_partial = self.processed_partially_by_r(r_id)  # O_r \ O'_r
+                    candidates = [
+                        (o_id, self.inst.get_order_by_id(o_id).items) for o_id in sorted(O_r_partial - (X_2 | Y_2))
+                    ]
+
+                    Z_2_updated = frozenset((o_id, i_id) for (o_id, i_id) in Z_2 if i_id not in rack_items)
+
+                    max_size = min(B_prime, len(candidates))
+                    for size in range(max_size, -1, -1):
+                        for U_r_comb in combinations(candidates, size):
+                            U_r_ids = set(o_id for o_id, _ in U_r_comb)
+                            Y_3 = Y_2 | U_r_ids
+
+                            new_missing = set()
+                            for o_id, o_items in U_r_comb:
+                                for i_id in o_items - rack_items:
+                                    new_missing.add((o_id, i_id))
+
+                            Z_3 = Z_2_updated | frozenset(new_missing)
 
                             successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
                             if self.save_state(successor, state, r_id):
@@ -185,6 +315,23 @@ class Dynamic_solution:
         Z = frozenset()
 
         self.dynamic_programing((X, Y, Z), 0)
+        end = time.perf_counter()
+
+        self.reconstuct()
+
+        self.statistic["total_runtime"] = end - now
+        # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
+
+        self.result()
+
+    def run_DP_without(self):
+        now = time.perf_counter()
+        self.start_time = now
+        X = frozenset()
+        Y = frozenset()
+        Z = frozenset()
+
+        self.dynamic_programing_without((X, Y, Z), 0)
         end = time.perf_counter()
 
         self.reconstuct()
@@ -252,43 +399,58 @@ class Dynamic_solution:
         print(f"X:{s[0]}\nY:{s[1]}\nZ:{s[2]}")
 
     def _sort_order(self, X, Y, Z) -> List[int]:
-        """
-        Sort racks by:
-          1) descending number of picks contributed to orders currently in Y (service area)
-          2) tie-break: descending number of picks contributed to unprocessed orders (O -  (X ∪ Y))
-          3) tie-break: random
-        Racks satisfying neither condition are pushed to the end (their order doesn't matter).
-        """
-        # items currently missing for orders in the service area: {i | ∃o∈Y : (o,i)∈Z}
-        missing_items_in_service_area = frozenset(i_id for (o_id, i_id) in Z if o_id in Y)
+        set_X = set(X)
+        set_Y = set(Y)
+        X_union_Y = set_X | set_Y
 
-        # orders not yet processed at all (neither completed nor in service area)
-        unprocessed_orders = [o for o in self.inst.orders if o.id not in X and o.id not in Y]
+        missing_items_in_Y = [i_id for (o_id, i_id) in Z if o_id in set_Y]
+        distinct_missing_items_in_Y = set(missing_items_in_Y)
 
-        scored: List[Tuple[float, float, float, int]] = []  # (priority1, priority2, random_tiebreak, rack_id)
+        is_Z_empty = len(missing_items_in_Y) == 0
+
+        # Z^0 = \emptyset
+        apply_Z_empty_filter = False
+        if is_Z_empty:
+            remaining_orders = set(o.id for o in self.inst.orders if o.id not in set_X)
+            union_O_prime = set()
+            for r in self.inst.racks:
+                union_O_prime.update(self.processed_completely_by_r(r.id))
+
+            # O \ X0
+            if not remaining_orders.issubset(union_O_prime):
+                apply_Z_empty_filter = True
+
+        # (O - (X U Y))
+        unprocessed_orders = [o for o in self.inst.orders if o.id not in X_union_Y]
+
+        scored: List[Tuple[float, float, float, int]] = []
 
         for r in self.inst.racks:
-            # priority 1: picks contributed to orders currently in service area
-            picks_for_Y = len(r.items & missing_items_in_service_area)
+            # O_r
+            O_r = self.processed_completely_by_r(r.id) | self.processed_partially_by_r(r.id)
 
-            # priority 2: picks contributed to unprocessed orders
+            # PRIORITY 1
+            picks_for_Y = sum(1 for i_id in missing_items_in_Y if i_id in r.items)
+
+            # Priority 2
             picks_for_unprocessed = sum(len(o.items & r.items) for o in unprocessed_orders)
 
-            # Ir ∩ {missing items of Y} ≠ ∅  ∨  Or \ (X ∪ Y) ≠ ∅
-            O_r = self.processed_completely_by_r(r.id) | self.processed_partially_by_r(r.id)
-            eligible = bool(r.items & missing_items_in_service_area) or bool(O_r - (set(X) | set(Y)))
+            if not is_Z_empty:
+                eligible = bool(r.items & distinct_missing_items_in_Y) or bool(O_r - X_union_Y)
+            else:
+                if apply_Z_empty_filter:
+                    eligible = bool(O_r - set_X)
+                else:
+                    eligible = True
 
             if not eligible:
-                # push ineligible racks to the very end: use -inf priorities
                 scored.append((float("-inf"), float("-inf"), np.random.random(), r.id))
             else:
                 scored.append((picks_for_Y, picks_for_unprocessed, np.random.random(), r.id))
 
-        # sort descending on priority1, then priority2, then random tiebreak
         scored.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
 
-        sorted_racks = [r_id for (_, _, _, r_id) in scored]
-        return sorted_racks
+        return [r_id for (_, _, _, r_id) in scored]
 
     def processed_completely_by_r(self, r_id: int):
         if r_id in self._processed_completely_cache:

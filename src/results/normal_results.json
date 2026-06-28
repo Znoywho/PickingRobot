@@ -1,0 +1,54 @@
+[
+    {
+        "instance_id": 1,
+        "n_orders": 100,
+        "n_racks": 25,
+        "capacity": 3,
+        "n_items": 100,
+        "incumbent": 56,
+        "lower_bound": 21,
+        "gap": 0.625,
+        "time_limit_hit": true,
+        "total_runtime": 100.2203,
+        "n_states_explored": 59266,
+        "n_states_generated": 4732,
+        "n_pruning": 49542,
+        "n_solver_calls": 12874,
+        "n_solver_cached": 41475,
+        "incumbent_history": [
+            [
+                0.2176811959943734,
+                63
+            ],
+            [
+                0.7111115839943523,
+                62
+            ],
+            [
+                1.0366270159938722,
+                61
+            ],
+            [
+                1.2759506669972325,
+                60
+            ],
+            [
+                1.4752039429949946,
+                59
+            ],
+            [
+                1.7445952509951894,
+                58
+            ],
+            [
+                1.9427054609986953,
+                57
+            ],
+            [
+                31.96758678599872,
+                56
+            ]
+        ],
+        "pruning_history": []
+    }
+]

@@ -1,0 +1,245 @@
+[
+  {
+    "instance_id": 1,
+    "n_orders": 25,
+    "n_racks": 25,
+    "capacity": 2,
+    "n_items": 20,
+    "incumbent": 9,
+    "lower_bound": 7,
+    "gap": 0.2222,
+    "time_limit_hit": false,
+    "total_runtime": 13.6516,
+    "n_states_explored": 40301,
+    "n_states_generated": 3594,
+    "n_pruning": 36660,
+    "n_solver_calls": 1046,
+    "n_solver_cached": 39253,
+    "incumbent_history": [
+      [
+        0.05299508900134242,
+        15
+      ],
+      [
+        0.15784601899940753,
+        14
+      ],
+      [
+        0.21013539300111006,
+        13
+      ],
+      [
+        0.4500883809996594,
+        12
+      ],
+      [
+        0.5446709570023813,
+        11
+      ],
+      [
+        0.8002830789992004,
+        10
+      ],
+      [
+        7.327020937002089,
+        9
+      ]
+    ],
+    "pruning_history": [
+      [
+        0.5447545080023701,
+        78.85906040268456
+      ],
+      [
+        0.8003704959992319,
+        81.17408906882592
+      ]
+    ]
+  },
+  {
+    "instance_id": 2,
+    "n_orders": 25,
+    "n_racks": 25,
+    "capacity": 5,
+    "n_items": 20,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 1.3913,
+    "n_states_explored": 1579,
+    "n_states_generated": 52,
+    "n_pruning": 1524,
+    "n_solver_calls": 196,
+    "n_solver_cached": 1383,
+    "incumbent_history": [
+      [
+        0.05733655099902535,
+        9
+      ],
+      [
+        0.2997486130007019,
+        8
+      ],
+      [
+        1.0792722570004116,
+        7
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 3,
+    "n_orders": 25,
+    "n_racks": 25,
+    "capacity": 10,
+    "n_items": 20,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 1.109,
+    "n_states_explored": 905,
+    "n_states_generated": 15,
+    "n_pruning": 889,
+    "n_solver_calls": 170,
+    "n_solver_cached": 735,
+    "incumbent_history": [
+      [
+        0.06334824100122205,
+        8
+      ],
+      [
+        0.4711100050008099,
+        7
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 4,
+    "n_orders": 50,
+    "n_racks": 50,
+    "capacity": 2,
+    "n_items": 20,
+    "incumbent": 15,
+    "lower_bound": 6,
+    "gap": 0.6,
+    "time_limit_hit": true,
+    "total_runtime": 100.0921,
+    "n_states_explored": 228035,
+    "n_states_generated": 14360,
+    "n_pruning": 210820,
+    "n_solver_calls": 779,
+    "n_solver_cached": 225323,
+    "incumbent_history": [
+      [
+        0.10308725499999127,
+        20
+      ],
+      [
+        0.1593488590006018,
+        19
+      ],
+      [
+        0.3091341930012277,
+        18
+      ],
+      [
+        0.8404658420004125,
+        17
+      ],
+      [
+        12.858359919999202,
+        16
+      ],
+      [
+        42.29441909399975,
+        15
+      ]
+    ],
+    "pruning_history": [
+      [
+        0.8405834100012726,
+        86.20071684587813
+      ]
+    ]
+  },
+  {
+    "instance_id": 5,
+    "n_orders": 50,
+    "n_racks": 50,
+    "capacity": 5,
+    "n_items": 20,
+    "incumbent": 8,
+    "lower_bound": 6,
+    "gap": 0.25,
+    "time_limit_hit": true,
+    "total_runtime": 100.5469,
+    "n_states_explored": 750492,
+    "n_states_generated": 4199,
+    "n_pruning": 709265,
+    "n_solver_calls": 1054,
+    "n_solver_cached": 712416,
+    "incumbent_history": [
+      [
+        0.11115897000127006,
+        12
+      ],
+      [
+        0.42735319600251387,
+        11
+      ],
+      [
+        1.0819888650003122,
+        10
+      ],
+      [
+        2.6371248610012117,
+        9
+      ],
+      [
+        7.835573803000443,
+        8
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 6,
+    "n_orders": 50,
+    "n_racks": 50,
+    "capacity": 10,
+    "n_items": 20,
+    "incumbent": 6,
+    "lower_bound": 6,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 27.6667,
+    "n_states_explored": 290223,
+    "n_states_generated": 18,
+    "n_pruning": 290202,
+    "n_solver_calls": 363,
+    "n_solver_cached": 289859,
+    "incumbent_history": [
+      [
+        0.055206284996529575,
+        8
+      ],
+      [
+        0.5847185019993049,
+        7
+      ],
+      [
+        22.030810749998636,
+        6
+      ]
+    ],
+    "pruning_history": [
+      [
+        22.035776619999524,
+        99.99139865982929
+      ]
+    ]
+  }
+]

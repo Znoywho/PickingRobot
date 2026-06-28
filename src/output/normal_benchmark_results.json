@@ -1,0 +1,110 @@
+[
+  {
+    "instance_id": 1,
+    "n_orders": 100,
+    "n_racks": 25,
+    "capacity": 3,
+    "n_items": 100,
+    "incumbent": 56,
+    "lower_bound": null,
+    "gap": null,
+    "time_limit_hit": true,
+    "total_runtime": 200.1742,
+    "n_states_explored": 115664,
+    "n_states_generated": 12003,
+    "n_pruning": 98560,
+    "n_solver_calls": 23046,
+    "n_solver_cached": 87799,
+    "incumbent_history": [
+      [
+        0.25169441899925005,
+        63
+      ],
+      [
+        0.736560068999097,
+        62
+      ],
+      [
+        1.0994502040011866,
+        61
+      ],
+      [
+        1.3316987739999604,
+        60
+      ],
+      [
+        1.527358033999917,
+        59
+      ],
+      [
+        1.8266269390005618,
+        58
+      ],
+      [
+        2.034459139998944,
+        57
+      ],
+      [
+        35.31745554200097,
+        56
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 2,
+    "n_orders": 15,
+    "n_racks": 7,
+    "capacity": 4,
+    "n_items": 30,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 0.3177,
+    "n_states_explored": 265,
+    "n_states_generated": 15,
+    "n_pruning": 249,
+    "n_solver_calls": 54,
+    "n_solver_cached": 210,
+    "incumbent_history": [
+      [
+        0.045162451002397574,
+        8
+      ],
+      [
+        0.17503894500259776,
+        7
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 3,
+    "n_orders": 20,
+    "n_racks": 10,
+    "capacity": 5,
+    "n_items": 40,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 0.4956,
+    "n_states_explored": 276,
+    "n_states_generated": 14,
+    "n_pruning": 260,
+    "n_solver_calls": 70,
+    "n_solver_cached": 205,
+    "incumbent_history": [
+      [
+        0.04773840400230256,
+        8
+      ],
+      [
+        0.21176926900079707,
+        7
+      ]
+    ],
+    "pruning_history": []
+  }
+]

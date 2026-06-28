@@ -1,0 +1,82 @@
+[
+  {
+    "instance_id": 1,
+    "n_orders": 10,
+    "n_racks": 5,
+    "capacity": 3,
+    "n_items": 20,
+    "incumbent": 4,
+    "lower_bound": 3,
+    "gap": 0.25,
+    "time_limit_hit": false,
+    "total_runtime": 0.1768,
+    "n_states_explored": 84,
+    "n_states_generated": 6,
+    "n_pruning": 78,
+    "n_solver_calls": 27,
+    "n_solver_cached": 56,
+    "incumbent_history": [
+      [
+        0.06346959000075003,
+        4
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 2,
+    "n_orders": 15,
+    "n_racks": 7,
+    "capacity": 4,
+    "n_items": 30,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 0.256,
+    "n_states_explored": 265,
+    "n_states_generated": 15,
+    "n_pruning": 249,
+    "n_solver_calls": 54,
+    "n_solver_cached": 210,
+    "incumbent_history": [
+      [
+        0.03989207999984501,
+        8
+      ],
+      [
+        0.14728379499865696,
+        7
+      ]
+    ],
+    "pruning_history": []
+  },
+  {
+    "instance_id": 3,
+    "n_orders": 20,
+    "n_racks": 10,
+    "capacity": 5,
+    "n_items": 40,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 0.3203,
+    "n_states_explored": 276,
+    "n_states_generated": 14,
+    "n_pruning": 260,
+    "n_solver_calls": 70,
+    "n_solver_cached": 205,
+    "incumbent_history": [
+      [
+        0.03481070199995884,
+        8
+      ],
+      [
+        0.16363656199973775,
+        7
+      ]
+    ],
+    "pruning_history": []
+  }
+]

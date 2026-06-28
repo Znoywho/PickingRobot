@@ -1,0 +1,30 @@
+[
+  {
+    "instance_id": 3,
+    "n_orders": 20,
+    "n_racks": 10,
+    "capacity": 5,
+    "n_items": 40,
+    "incumbent": 7,
+    "lower_bound": 7,
+    "gap": 0.0,
+    "time_limit_hit": false,
+    "total_runtime": 0.4593,
+    "n_states_explored": 276,
+    "n_states_generated": 14,
+    "n_pruning": 260,
+    "n_solver_calls": 70,
+    "n_solver_cached": 206,
+    "incumbent_history": [
+      [
+        0.0613322839999455,
+        8
+      ],
+      [
+        0.23693209799967008,
+        7
+      ]
+    ],
+    "pruning_history": []
+  }
+]

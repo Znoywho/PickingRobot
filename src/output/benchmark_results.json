@@ -1,238 +1,44 @@
 [
   {
     "instance_id": 1,
-    "n_orders": 25,
+    "n_orders": 50,
     "n_racks": 25,
     "capacity": 2,
-    "n_items": 20,
-    "incumbent": 9,
-    "lower_bound": 7,
-    "gap": 0.2222,
-    "time_limit_hit": false,
-    "total_runtime": 17.0224,
-    "n_states_explored": 40340,
-    "n_states_generated": 3598,
-    "n_pruning": 36694,
-    "n_solver_calls": 1047,
-    "n_solver_cached": 39291,
-    "incumbent_history": [
-      [
-        0.062002694998227526,
-        15
-      ],
-      [
-        0.18474221299402416,
-        14
-      ],
-      [
-        0.2387079289983376,
-        13
-      ],
-      [
-        0.5149306189996423,
-        12
-      ],
-      [
-        0.6152536529989447,
-        11
-      ],
-      [
-        0.8765869220005698,
-        10
-      ],
-      [
-        8.039687165000942,
-        9
-      ]
-    ],
-    "pruning_history": [
-      [
-        0.6153204719958012,
-        78.85906040268456
-      ],
-      [
-        0.8766311279978254,
-        81.04838709677419
-      ]
-    ]
-  },
-  {
-    "instance_id": 2,
-    "n_orders": 25,
-    "n_racks": 25,
-    "capacity": 5,
-    "n_items": 20,
-    "incumbent": 7,
-    "lower_bound": 7,
-    "gap": 0.0,
-    "time_limit_hit": false,
-    "total_runtime": 1.8374,
-    "n_states_explored": 1577,
-    "n_states_generated": 51,
-    "n_pruning": 1522,
-    "n_solver_calls": 192,
-    "n_solver_cached": 1385,
-    "incumbent_history": [
-      [
-        0.09048063000227557,
-        9
-      ],
-      [
-        0.36312211000040406,
-        8
-      ],
-      [
-        1.431979131004482,
-        7
-      ]
-    ],
-    "pruning_history": []
-  },
-  {
-    "instance_id": 3,
-    "n_orders": 25,
-    "n_racks": 25,
-    "capacity": 10,
-    "n_items": 20,
-    "incumbent": 7,
-    "lower_bound": 7,
-    "gap": 0.0,
-    "time_limit_hit": false,
-    "total_runtime": 1.7127,
-    "n_states_explored": 908,
-    "n_states_generated": 15,
-    "n_pruning": 892,
-    "n_solver_calls": 169,
-    "n_solver_cached": 739,
-    "incumbent_history": [
-      [
-        0.08108729399828007,
-        8
-      ],
-      [
-        0.7024014089984121,
-        7
-      ]
-    ],
-    "pruning_history": []
-  },
-  {
-    "instance_id": 4,
-    "n_orders": 50,
-    "n_racks": 50,
-    "capacity": 2,
-    "n_items": 20,
-    "incumbent": 15,
-    "lower_bound": 6,
-    "gap": 0.6,
+    "n_items": 60,
+    "incumbent": 23,
+    "lower_bound": 15,
+    "gap": 0.3478,
     "time_limit_hit": true,
-    "total_runtime": 100.1082,
-    "n_states_explored": 168938,
-    "n_states_generated": 11276,
-    "n_pruning": 154952,
-    "n_solver_calls": 776,
-    "n_solver_cached": 166257,
+    "total_runtime": 100.0268,
+    "n_states_explored": 77798,
+    "n_states_generated": 8908,
+    "n_pruning": 68394,
+    "n_solver_calls": 11663,
+    "n_solver_cached": 65657,
     "incumbent_history": [
       [
-        0.1344890049949754,
-        20
+        0.10432125000079395,
+        28
       ],
       [
-        0.20270568400155753,
-        19
+        0.20017155299865408,
+        27
       ],
       [
-        0.4470022519963095,
-        18
+        0.3500537500003702,
+        26
       ],
       [
-        1.200119316999917,
-        17
+        1.5407760900016,
+        25
       ],
       [
-        15.382177458996011,
-        16
+        2.3398877379986516,
+        24
       ],
       [
-        49.87196185499488,
-        15
-      ]
-    ],
-    "pruning_history": [
-      [
-        1.2002001779983402,
-        86.22540250447227
-      ]
-    ]
-  },
-  {
-    "instance_id": 5,
-    "n_orders": 50,
-    "n_racks": 50,
-    "capacity": 5,
-    "n_items": 20,
-    "incumbent": 8,
-    "lower_bound": 6,
-    "gap": 0.25,
-    "time_limit_hit": true,
-    "total_runtime": 102.2477,
-    "n_states_explored": 543283,
-    "n_states_generated": 2774,
-    "n_pruning": 503477,
-    "n_solver_calls": 1024,
-    "n_solver_cached": 505232,
-    "incumbent_history": [
-      [
-        0.11374593600339722,
-        12
-      ],
-      [
-        0.5244056150040706,
-        11
-      ],
-      [
-        1.3164366660057567,
-        10
-      ],
-      [
-        3.237032058001205,
-        9
-      ],
-      [
-        9.261199500004295,
-        8
-      ]
-    ],
-    "pruning_history": []
-  },
-  {
-    "instance_id": 6,
-    "n_orders": 50,
-    "n_racks": 50,
-    "capacity": 10,
-    "n_items": 20,
-    "incumbent": 6,
-    "lower_bound": 6,
-    "gap": 0.0,
-    "time_limit_hit": false,
-    "total_runtime": 54.1455,
-    "n_states_explored": 290322,
-    "n_states_generated": 18,
-    "n_pruning": 290301,
-    "n_solver_calls": 396,
-    "n_solver_cached": 289926,
-    "incumbent_history": [
-      [
-        0.08559884900023462,
-        8
-      ],
-      [
-        1.6809210240026005,
-        7
-      ],
-      [
-        44.52632607200212,
-        6
+        9.119646241000737,
+        23
       ]
     ],
     "pruning_history": []

@@ -7,7 +7,7 @@ import numpy as np
 
 dataset = [
     # [n_orders, n_racks, capacity, n_items]
-    [25, 25, 2, 20],
+    [50, 25, 2, 60]
     [25, 25, 5, 20],
     [25, 25, 10, 20],
     [50, 50, 2, 20],
@@ -15,7 +15,7 @@ dataset = [
     [50, 50, 10, 20],
 ]
 
-time_limit = 100
+time_limit = 600
 all_results = []
 
 for i, (n_orders, n_racks, capacity, n_items) in enumerate(dataset):
@@ -59,7 +59,7 @@ for i, (n_orders, n_racks, capacity, n_items) in enumerate(dataset):
     print(f"\n Result: obj={ub}, LB={lb}, gap={gap}, time={result['total_runtime']}s")
 
 os.makedirs("output", exist_ok=True)
-out_path = "output/benchmark_results.json"
+out_path = "output/benchmark_results_without.json"
 with open(out_path, "w") as f:
     json.dump(all_results, f, indent=2)
 
@@ -78,10 +78,10 @@ for r in all_results:
 
 
 save_path = "output/optimal_solution.png"
-with open("output/benchmark_results.json", "r") as file:
+with open("output/benchmark_results_without.json", "r") as file:
     config = json.load(file)
 
-sample = config[2]
+sample = config[0]
 
 times = [inst[0] for inst in sample["incumbent_history"]]
 values = [inst[1] for inst in sample["incumbent_history"]]
