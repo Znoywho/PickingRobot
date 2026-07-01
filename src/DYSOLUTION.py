@@ -40,7 +40,7 @@ class Dynamic_solution:
             "n_solver_calls": 0,  # số lần gọi MILP solver
             "n_solver_cached": 0,  # số lần dùng cache thay vì gọi solver
             "total_runtime": 0.0,
-            "imcubent": 0,
+            "incumbent": 0,
         }
 
     def dynamic_programing(
@@ -55,8 +55,8 @@ class Dynamic_solution:
             print("TIME LIMIT EXCEEDED")
             return
 
-        if state in self.genarated_states:
-            if gamma >= self.incumbent:
+        if gamma >= self.gamma_hat.get(state, float("inf")):
+            if state in self.genarated_states:
                 print("already exit or greater")
                 explored = self.statistic["n_states_explored"]
                 pruned = self.statistic["n_pruning"]
@@ -83,7 +83,6 @@ class Dynamic_solution:
         if Gamma_I_res + gamma >= self.incumbent:
             print("OVER LOWER BOUND")
             self.statistic["n_pruning"] += 1
-
             return
 
         print("BELOW LOWER BOUND")
@@ -93,11 +92,12 @@ class Dynamic_solution:
             self.statistic["n_states_generated"] += 1
             print("add new state")
             self.print_state(state)
+
         if self.orders == X:
             if gamma < self.incumbent:
                 self.incumbent = gamma
-                self.statistic["imcubent"] = gamma
-                print(f"✅ ====NEW RECORD OF incubent: {self.incumbent}====")
+                self.statistic["incumbent"] = gamma
+                print(f"✅ ====NEW RECORD OF incumbent: {self.incumbent}====")
                 self.incumbent_history.append((time.perf_counter() - self.start_time, gamma))
 
             print("✅ ====COMPLETED ALL ORDERS====")
@@ -128,7 +128,7 @@ class Dynamic_solution:
 
                 if B_prime == 0:
                     successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
-                    if self.save_state(successor, state, r_id):
+                    if self.save_state(successor, state, r_id, gamma):
                         self.dynamic_programing(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
@@ -165,7 +165,7 @@ class Dynamic_solution:
                             Z_3 = Z_2_updated | frozenset(new_missing)
 
                             successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
-                            if self.save_state(successor, state, r_id):
+                            if self.save_state(successor, state, r_id, gamma):
                                 # self.statistic["n_recursion"] += 1
                                 self.dynamic_programing(successor, gamma + 1)
 
@@ -182,37 +182,12 @@ class Dynamic_solution:
             return
 
         if state in self.genarated_states:
-            if gamma >= self.incumbent:
+            if gamma >= self.gamma_hat.get(state, float("inf")):
                 print("already exit or greater")
                 explored = self.statistic["n_states_explored"]
                 pruned = self.statistic["n_pruning"]
                 self.pruning_history.append((time.perf_counter() - self.start_time, pruned / explored * 100))
                 return
-        # Ires  ← ∪o∈O⧵(X0 ∪Y 0 ) Io ∪ {i ∈ I|∃o ∈ Y ∶ (o, i) ∈ Z 0 }
-        # Set of Itemsm are not currently on rack or available
-        # I_res = self.compute_missing_items(X, Y, Z)
-        # #
-        # I_res_key = frozenset(I_res)
-        # print(f"I_res: \n{I_res_key}")
-        #
-        # if I_res_key in self.rack_visits_for_items:
-        #     Gamma_I_res = self.rack_visits_for_items[I_res_key]
-        #     print(f"===I_res already exited!: {Gamma_I_res}===")
-        #     self.statistic["n_solver_cached"] += 1
-        # else:
-        #     self.statistic["n_solver_calls"] += 1
-        #     rackVisit = self.compute_covering_set(I_res_key)
-        #     self.rack_visits_for_items[I_res_key] = rackVisit
-        #     Gamma_I_res = self.rack_visits_for_items[I_res_key]
-        #     print(f"===New I_res!: {Gamma_I_res}===")
-        #
-        # if Gamma_I_res + gamma >= self.incumbent:
-        #     print("OVER LOWER BOUND")
-        #     self.statistic["n_pruning"] += 1
-        #
-        #     return
-        #
-        # print("BELOW LOWER BOUND")
 
         if state not in self.genarated_states:
             self.genarated_states.add(state)
@@ -222,8 +197,8 @@ class Dynamic_solution:
         if self.orders == X:
             if gamma < self.incumbent:
                 self.incumbent = gamma
-                self.statistic["imcubent"] = gamma
-                print(f"✅ ====NEW RECORD OF incubent: {self.incumbent}====")
+                self.statistic["incumbent"] = gamma
+                print(f"✅ ====NEW RECORD OF incumbent: {self.incumbent}====")
                 self.incumbent_history.append((time.perf_counter() - self.start_time, gamma))
 
             print("✅ ====COMPLETED ALL ORDERS====")
@@ -254,8 +229,8 @@ class Dynamic_solution:
 
                 if B_prime == 0:
                     successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
-                    if self.save_state(successor, state, r_id):
-                        self.dynamic_programing(successor, gamma + 1)
+                    if self.save_state(successor, state, r_id, gamma):
+                        self.dynamic_programing_without(successor, gamma + 1)
                 else:
                     Z_2 = Z_1
                     Y_2 = Y_1
@@ -291,9 +266,9 @@ class Dynamic_solution:
                             Z_3 = Z_2_updated | frozenset(new_missing)
 
                             successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
-                            if self.save_state(successor, state, r_id):
+                            if self.save_state(successor, state, r_id, gamma):
                                 # self.statistic["n_recursion"] += 1
-                                self.dynamic_programing(successor, gamma + 1)
+                                self.dynamic_programing_without(successor, gamma + 1)
 
     def result(self):
         print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
@@ -313,11 +288,13 @@ class Dynamic_solution:
         X = frozenset()
         Y = frozenset()
         Z = frozenset()
+        initial_state = (X, Y, Z)
+        self.gamma_hat[initial_state] = 0
 
-        self.dynamic_programing((X, Y, Z), 0)
+        self.dynamic_programing(initial_state, 0)
         end = time.perf_counter()
 
-        self.reconstuct()
+        # self.reconstuct()
 
         self.statistic["total_runtime"] = end - now
         # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
@@ -331,10 +308,13 @@ class Dynamic_solution:
         Y = frozenset()
         Z = frozenset()
 
-        self.dynamic_programing_without((X, Y, Z), 0)
+        initial_state = (X, Y, Z)
+        self.gamma_hat[initial_state] = 0
+
+        self.dynamic_programing_without(initial_state, 0)
         end = time.perf_counter()
 
-        self.reconstuct()
+        # self.reconstuct()
 
         self.statistic["total_runtime"] = end - now
         # print(f"Number of times the incumbent was updated: {self.statistic['n_incumbent_updates']}")
@@ -476,12 +456,11 @@ class Dynamic_solution:
         self._processed_partially_cache[r_id] = saved_orders
         return saved_orders
 
-    def save_state(self, successor: State, predecessor: State, rack_id: int) -> bool:
-        current_gamma = self.gamma_hat.get(successor, float("inf"))
-        pred_gamma = self.gamma_hat.get(predecessor, 0)
-        new_gamma = pred_gamma + 1
+    def save_state(self, successor, predecessor, rack_id, current_gamma) -> bool:
+        current_best = self.gamma_hat.get(successor, float("inf"))
+        new_gamma = current_gamma + 1
 
-        if new_gamma < current_gamma:
+        if new_gamma < current_best:
             self.gamma_hat[successor] = new_gamma
             self.predecessor[successor] = (predecessor, rack_id)
             return True
@@ -568,8 +547,7 @@ if __name__ == "__main__":
     pp.display_racks()
 
     new = generate_instance(n_items=100, n_orders=50, n_racks=25, capacity=3)
-    sl = Dynamic_solution(pp, 200)
+    sl = Dynamic_solution(pp, 50)
 
     sl.run_DP()
-
-    sl.save_sample_matric("PPstatistic")
+    print(sl.incumbent_history)

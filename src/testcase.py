@@ -7,7 +7,7 @@ import numpy as np
 
 dataset = [
     # [n_orders, n_racks, capacity, n_items]
-    [50, 25, 2, 60]
+    [50, 25, 2, 60],
     [25, 25, 5, 20],
     [25, 25, 10, 20],
     [50, 50, 2, 20],

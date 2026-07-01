@@ -23,4 +23,20 @@
     "n_solver_cached": 28,
     "total_runtime": 0.0904633370000738,
     "imcubent": 4
+}{
+    "n_pruning": 114,
+    "n_states_generated": 54,
+    "n_states_explored": 170,
+    "n_solver_calls": 18,
+    "n_solver_cached": 150,
+    "total_runtime": 0.1466264919981768,
+    "incumbent": 5
+}{
+    "n_pruning": 26602,
+    "n_states_generated": 5328,
+    "n_states_explored": 32613,
+    "n_solver_calls": 4390,
+    "n_solver_cached": 27540,
+    "total_runtime": 50.04045051800131,
+    "incumbent": 20
 }
