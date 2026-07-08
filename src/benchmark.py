@@ -17,6 +17,7 @@ from DYSOLUTION2 import OPT_Dynamic_Solution
 
 # Suppress solver/debug output during benchmarking
 import logging
+
 logging.disable(logging.CRITICAL)
 
 
@@ -104,7 +105,7 @@ def print_table(results):
 
 
 def main():
-    TIME_LIMIT = 30.0  # seconds per solver run
+    TIME_LIMIT = 100.0  # seconds per solver run
 
     test_cases = [
         # (label, instance_or_generator)
@@ -117,10 +118,10 @@ def main():
         ("XLarge (100i/30o/15r, B=3)", generate_instance(n_items=100, n_orders=30, n_racks=15, capacity=3)),
     ]
 
-    print(f"\n{'='*80}")
-    print(f"  BENCHMARK: DYSOLUTION (V1 loop) vs DYSOLUTION2 (V2 sparse)")
+    print(f"\n{'=' * 80}")
+    print("  BENCHMARK: DYSOLUTION (V1 loop) vs DYSOLUTION2 (V2 sparse)")
     print(f"  Time limit per run: {TIME_LIMIT}s")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     results = []
     for label, inst in test_cases:
@@ -137,7 +138,7 @@ def main():
     os.makedirs("output", exist_ok=True)
     with open("output/benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2, default=str)
-    print(f"\nRaw results saved to output/benchmark_results.json")
+    print("\nRaw results saved to output/benchmark_results.json")
 
 
 if __name__ == "__main__":

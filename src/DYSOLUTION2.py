@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 from itertools import combinations
@@ -12,6 +13,8 @@ from instance import Paper_Example, generate_instance
 from models import NewInstance, Order, Rack, State
 
 # TODO: The lower bound can be calculated by employing a MILP solver for **a set cover problem**
+
+logger = logging.getLogger(__name__)
 
 
 class OPT_Dynamic_Solution:
@@ -105,12 +108,7 @@ class OPT_Dynamic_Solution:
     #  Core DP recursion (unified)                                        #
     # ------------------------------------------------------------------ #
 
-    def _dynamic_programming(
-        self,
-        state: State,
-        gamma: int,
-        use_lower_bound: bool,
-    ):
+    def _dynamic_programming(self, state: State, gamma: int, use_lower_bound: bool):
         """Unified DP recursion.
 
         When *use_lower_bound* is True the method computes
@@ -131,9 +129,7 @@ class OPT_Dynamic_Solution:
                 print("already exit or greater")
                 explored = self.statistic["n_states_explored"]
                 pruned = self.statistic["n_pruning"]
-                self.pruning_history.append(
-                    (time.perf_counter() - self.start_time, pruned / explored * 100)
-                )
+                self.pruning_history.append((time.perf_counter() - self.start_time, pruned / explored * 100))
                 return
 
         # --- Lower-bound pruning (optional) ---
@@ -202,47 +198,30 @@ class OPT_Dynamic_Solution:
                 if self._save_state(successor, state, r_id, gamma):
                     self._dynamic_programming(successor, gamma + 1, use_lower_bound)
             else:
-                Z_2 = Z_1
-                Y_2 = Y_1
                 O_r = self._processed_completely_by_r(r_id)
                 X_2 = X_1 | O_r
 
-                print(f"Z_2: {Z_2}")
-                print(f"Y_2: {Y_2}")
-                print(f"X_2: {X_2}")
-
-                X_3 = X_2
-
                 O_r_partial = self._processed_partially_by_r(r_id)
-                candidates = [
-                    (o_id, self._order_by_id[o_id].items)
-                    for o_id in sorted(O_r_partial - (X_2 | Y_2))
-                ]
+                candidates = [(o_id, self._order_by_id[o_id].items) for o_id in sorted(O_r_partial - (X_2 | Y_1))]
 
-                Z_2_updated = frozenset(
-                    (o_id, i_id) for (o_id, i_id) in Z_2 if i_id not in rack_items
-                )
+                Z_1_updated = frozenset((o_id, i_id) for (o_id, i_id) in Z_1 if i_id not in rack_items)
 
                 max_size = min(B_prime, len(candidates))
                 for size in range(max_size, -1, -1):
                     for U_r_comb in combinations(candidates, size):
                         U_r_ids = set(o_id for o_id, _ in U_r_comb)
-                        Y_3 = Y_2 | U_r_ids
+                        Y_3 = Y_1 | U_r_ids
 
                         new_missing: Set[Tuple[int, int]] = set()
                         for o_id, o_items in U_r_comb:
                             for i_id in o_items - rack_items:
                                 new_missing.add((o_id, i_id))
 
-                        Z_3 = Z_2_updated | frozenset(new_missing)
+                        Z_3 = Z_1_updated | frozenset(new_missing)
 
-                        successor = (frozenset(X_3), frozenset(Y_3), frozenset(Z_3))
+                        successor = (frozenset(X_2), frozenset(Y_3), frozenset(Z_3))
                         if self._save_state(successor, state, r_id, gamma):
                             self._dynamic_programming(successor, gamma + 1, use_lower_bound)
-
-    # ------------------------------------------------------------------ #
-    #  Sparse-matrix construction                                         #
-    # ------------------------------------------------------------------ #
 
     def _build_sparse_matrices(self) -> np.ndarray:
         """Build item↔rack and item↔order sparse matrices; return dense overlap."""
@@ -267,9 +246,7 @@ class OPT_Dynamic_Solution:
             for it in r.items:
                 rows.append(ri)
                 cols.append(self.item_idx[it])
-        self.item_rack_sparse_matrix = csr_matrix(
-            (np.ones(len(rows)), (rows, cols)), shape=(n_racks, n_items)
-        )
+        self.item_rack_sparse_matrix = csr_matrix((np.ones(len(rows)), (rows, cols)), shape=(n_racks, n_items))
 
         # Item-Order matrix  (n_orders × n_items)
         rows, cols = [], []
@@ -278,19 +255,13 @@ class OPT_Dynamic_Solution:
             for it in o.items:
                 rows.append(oi)
                 cols.append(self.item_idx[it])
-        self.item_order_sparse_matrix = csr_matrix(
-            (np.ones(len(rows)), (rows, cols)), shape=(n_orders, n_items)
-        )
+        self.item_order_sparse_matrix = csr_matrix((np.ones(len(rows)), (rows, cols)), shape=(n_orders, n_items))
 
         # Overlap: (n_racks × n_orders) — how many items rack r shares with order o
         self.overlap_matrix = self.item_rack_sparse_matrix @ self.item_order_sparse_matrix.T
-        print(self.overlap_matrix)
+        logger.debug("Overlap matrix:\n%s", self.overlap_matrix)
 
         return self.overlap_matrix.toarray()
-
-    # ------------------------------------------------------------------ #
-    #  Helper methods                                                     #
-    # ------------------------------------------------------------------ #
 
     def _compute_missing_items(self, X: FrozenSet[int], Y: FrozenSet[int], Z: FrozenSet[Tuple[int, int]]) -> Set[int]:
         """I_res ← items still missing from the service area and unprocessed orders."""
@@ -310,9 +281,7 @@ class OPT_Dynamic_Solution:
             problem += (pulp.lpSum(x[r] for r in covering_racks) >= 1, f"cover_item_{i}")
 
         problem.solve(pulp.PULP_CBC_CMD(msg=False))
-        print(pulp.LpStatus[problem.status])
-        selected_racks = [r for r in self.racks if x[r].value() == 1]
-        print("Selected racks:", selected_racks)
+        logger.debug("Set-cover status: %s", pulp.LpStatus[problem.status])
 
         return int(pulp.value(problem.objective))
 
@@ -341,9 +310,7 @@ class OPT_Dynamic_Solution:
         pick_for_Y_all = np.asarray(self.item_rack_sparse_matrix @ m_count).flatten()
 
         # Unprocessed orders mask
-        unprocessed_idx = [
-            self.order_idx[o.id] for o in self.inst.orders if o.id not in X_union_Y
-        ]
+        unprocessed_idx = [self.order_idx[o.id] for o in self.inst.orders if o.id not in X_union_Y]
         unprocessed_mask = np.zeros(n_orders, dtype=bool)
         unprocessed_mask[unprocessed_idx] = True
 
@@ -435,26 +402,23 @@ class OPT_Dynamic_Solution:
     def _extract_orders_from_Z(Z) -> Set[int]:
         return set(o_id for o_id, _ in Z)
 
-    # ------------------------------------------------------------------ #
-    #  Result output                                                      #
-    # ------------------------------------------------------------------ #
-
     def _print_result(self):
-        """Print summary statistics (same format as V1)."""
-        print(f"Total runtime: {self.statistic['total_runtime']:.4f}")
-
+        """Print summary statistics."""
+        rt = self.statistic["total_runtime"]
         explored = self.statistic["n_states_explored"]
+        pruned = self.statistic["n_pruning"]
+
+        print(f"Total runtime: {rt:.4f}s")
         if explored > 0:
-            print(
-                f"Percent of pruned states: {self.statistic['n_pruning'] / explored * 100:.2f}%"
-            )
+            print(f"Percent of pruned states: {pruned / explored * 100:.2f}%")
         else:
             print("No states explored.")
-        print(f"Number of cached solver calls: {self.statistic['n_solver_cached']}")
-        print(f"Number of unique states generated: {self.statistic['n_states_generated']}")
-        print(f"Number of states explored: {explored}")
-        print(f"Number of solver calls: {self.statistic['n_solver_calls']}")
-        print(f"Incumbent solution(Number of Racks): {self.incumbent}")
+        print(
+            f"Solver calls (cached / total): {self.statistic['n_solver_cached']} / {self.statistic['n_solver_calls']}"
+        )
+        print(f"Unique states generated: {self.statistic['n_states_generated']}")
+        print(f"States explored: {explored}")
+        print(f"Incumbent (rack visits): {self.incumbent}")
 
     # ------------------------------------------------------------------ #
     #  Solution reconstruction                                            #
@@ -514,10 +478,6 @@ class OPT_Dynamic_Solution:
         print(f"All orders completed: {sorted(self.orders)}")
         print("=" * 60)
 
-    # ------------------------------------------------------------------ #
-    #  Persistence                                                        #
-    # ------------------------------------------------------------------ #
-
     def save_sample_metrics(self, filename: str):
         """Append current statistics to a JSON file in ``output/``."""
         os.makedirs("output", exist_ok=True)
@@ -525,11 +485,9 @@ class OPT_Dynamic_Solution:
             json.dump(self.statistic, fh, indent=4)
 
 
-# ====================================================================== #
-#  Quick smoke-test                                                       #
-# ====================================================================== #
-
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
     pp = Paper_Example()
     print(f"ITEMS: {pp.all_items}")
     print("ORDERS:")
@@ -537,7 +495,8 @@ if __name__ == "__main__":
     print("RACKS:")
     pp.display_racks()
 
-    sl = OPT_Dynamic_Solution(pp, 50)
+    solver = OPT_Dynamic_Solution(pp, time_limit=50)
 
-    sl.run_DP()
-    print(sl.incumbent_history)
+    print("\n>>> Running DP WITH lower-bound pruning:")
+    solver.run(use_lower_bound=True)
+    print(f"Incumbent history: {solver.incumbent_history}")
