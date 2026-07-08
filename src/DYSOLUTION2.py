@@ -61,7 +61,7 @@ class OPT_Dynamic_Solution:
         self.partial_matrix = (self.coverage_dense_matrix > 0) & (~self.completely_matrix)
 
         # --- Statistics ---
-        self.start_time: float | None = None
+        # self.start_time: float | None = None
         self.statistic = {
             "n_pruning": 0,
             "n_states_generated": 0,
@@ -120,13 +120,13 @@ class OPT_Dynamic_Solution:
 
         # --- Time-limit check ---
         if time.perf_counter() - self.start_time > self.time_limit:
-            print("TIME LIMIT EXCEEDED")
+            logger.debug("TIME LIMIT EXCEEDED")
             return
 
         # --- Dominance check ---
         if gamma >= self.gamma_hat.get(state, float("inf")):
             if state in self.generated_states:
-                print("already exit or greater")
+                logger.debug("State already visited with equal/better gamma — skipping")
                 explored = self.statistic["n_states_explored"]
                 pruned = self.statistic["n_pruning"]
                 self.pruning_history.append((time.perf_counter() - self.start_time, pruned / explored * 100))
@@ -136,30 +136,30 @@ class OPT_Dynamic_Solution:
         if use_lower_bound:
             I_res = self._compute_missing_items(X, Y, Z)
             I_res_key = frozenset(I_res)
-            print(f"I_res: \n{I_res_key}")
+            logger.debug(f"I_res: \n{I_res_key}")
 
             if I_res_key in self.rack_visits_for_items:
                 Gamma_I_res = self.rack_visits_for_items[I_res_key]
-                print(f"===I_res already exited!: {Gamma_I_res}===")
+                logger.debug(f"===I_res already exited!: {Gamma_I_res}===")
                 self.statistic["n_solver_cached"] += 1
             else:
                 self.statistic["n_solver_calls"] += 1
                 Gamma_I_res = self._compute_covering_set(I_res_key)
                 self.rack_visits_for_items[I_res_key] = Gamma_I_res
-                print(f"===New I_res!: {Gamma_I_res}===")
+                logger.debug(f"===New I_res!: {Gamma_I_res}===")
 
             if Gamma_I_res + gamma >= self.incumbent:
-                print("OVER LOWER BOUND")
+                logger.debug("OVER LOWER BOUND")
                 self.statistic["n_pruning"] += 1
                 return
 
-            print("BELOW LOWER BOUND")
+            logger.debug("BELOW LOWER BOUND")
 
         # --- Register state ---
         if state not in self.generated_states:
             self.generated_states.add(state)
             self.statistic["n_states_generated"] += 1
-            print("add new state")
+            logger.debug("add new state")
             self.print_state(state)
 
         # --- Terminal check ---
@@ -167,31 +167,31 @@ class OPT_Dynamic_Solution:
             if gamma < self.incumbent:
                 self.incumbent = gamma
                 self.statistic["incumbent"] = gamma
-                print(f"✅ ====NEW RECORD OF incumbent: {self.incumbent}====")
+                logger.info(f"✅ ====NEW RECORD OF incumbent: {self.incumbent}====")
                 self.incumbent_history.append((time.perf_counter() - self.start_time, gamma))
-            print("✅ ====COMPLETED ALL ORDERS====")
+            logger.info("✅ ====COMPLETED ALL ORDERS====")
             return
 
         # --- Build successors ---
-        print("BUILDIND SUCCESSOR")
+        logger.debug("BUILDIND SUCCESSOR")
         sorted_racks = self._sort_racks(X, Y, Z)
 
-        print(sorted_racks)
+        logger.debug(sorted_racks)
         for r_id in sorted_racks:
             rack_items = self._rack_by_id[r_id].items
 
             # Z_1: remove (o,i) pairs whose item is fulfilled by this rack
             Z_1 = set((o_id, i_id) for (o_id, i_id) in Z if i_id not in rack_items)
-            print(f"rack_id = {r_id}")
+            logger.debug(f"rack_id = {r_id}")
 
             Y_1 = self._extract_orders_from_Z(Z_1)
             X_1 = X | frozenset(Y - Y_1)
-            print(f"Z_1: {Z_1}")
-            print(f"Y_1: {Y_1}")
-            print(f"X_1: {X_1}")
+            logger.debug(f"Z_1: {Z_1}")
+            logger.debug(f"Y_1: {Y_1}")
+            logger.debug(f"X_1: {X_1}")
 
             B_prime = self.capacity - len(Y_1)  # remaining bin slots
-            print(f"remaining bin: {B_prime}")
+            logger.debug(f"remaining bin: {B_prime}")
 
             if B_prime == 0:
                 successor = (frozenset(X_1), frozenset(Y_1), frozenset(Z_1))
