@@ -35,10 +35,10 @@ class Dynamic_solution:
         self.start_time = None
         self.statistic = {
             "n_pruning": 0,
-            "n_states_generated": 0,  # số state duy nhất được tạo
-            "n_states_explored": 0,  # số lần gọi DP (kể cả lặp)
-            "n_solver_calls": 0,  # số lần gọi MILP solver
-            "n_solver_cached": 0,  # số lần dùng cache thay vì gọi solver
+            "n_states_generated": 0,
+            "n_states_explored": 0,
+            "n_solver_calls": 0,
+            "n_solver_cached": 0,
             "total_runtime": 0.0,
             "incumbent": 0,
         }
@@ -181,8 +181,8 @@ class Dynamic_solution:
             print("TIME LIMIT EXCEEDED")
             return
 
-        if state in self.genarated_states:
-            if gamma >= self.gamma_hat.get(state, float("inf")):
+        if gamma >= self.gamma_hat.get(state, float("inf")):
+            if state in self.genarated_states:
                 print("already exit or greater")
                 explored = self.statistic["n_states_explored"]
                 pruned = self.statistic["n_pruning"]
@@ -194,6 +194,7 @@ class Dynamic_solution:
             self.statistic["n_states_generated"] += 1
             print("add new state")
             self.print_state(state)
+
         if self.orders == X:
             if gamma < self.incumbent:
                 self.incumbent = gamma
@@ -537,7 +538,7 @@ class Dynamic_solution:
             json.dump(data, file, indent=4)
 
 
-## TEST
+# TEST:
 if __name__ == "__main__":
     pp = Paper_Example()
     print(f"ITEMS: {pp.all_items}")
