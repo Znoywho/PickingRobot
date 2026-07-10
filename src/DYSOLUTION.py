@@ -425,27 +425,27 @@ class Dynamic_solution:
                     eligible = True
 
             if not eligible:
-                scored.append((float("-inf"), float("-inf"), np.random.random(), r.id))
+                scored.append((float("-inf"), float("-inf"), len(r.items), r.id))
             else:
-                scored.append((picks_for_Y, picks_for_unprocessed, np.random.random(), r.id))
+                scored.append((picks_for_Y, picks_for_unprocessed, len(r.items), r.id))
 
         scored.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
 
         return [r_id for (_, _, _, r_id) in scored]
 
     def processed_completely_by_r(self, r_id: int):
-        if r_id in self._processed_completely_cache:
-            return self._processed_completely_cache[r_id]
+        # if r_id in self._processed_completely_cache:
+        #     return self._processed_completely_cache[r_id]
 
         r = self.inst.get_rack_by_id(r_id)
         result = set(o.id for o in self.inst.orders if o.items <= r.items)
+
         self._processed_completely_cache[r_id] = result
         return result
 
     def processed_partially_by_r(self, r_id):
-        if r_id in self._processed_partially_cache:
-            return self._processed_partially_cache[r_id]
-
+        # if r_id in self._processed_partially_cache:
+        #     return self._processed_partially_cache[r_id]
         saved_orders = set()
         current_rack = self.inst.get_rack_by_id(r_id)
         # print("processed_partially_by_r")

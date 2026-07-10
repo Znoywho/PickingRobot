@@ -33,7 +33,6 @@ class OPT_Dynamic_Solution:
         self.orders = frozenset(o.id for o in self.inst.orders)
         self.racks = frozenset(r.id for r in self.inst.racks)
 
-        # --- Precompute lookup dicts (O(1) instead of O(n) linear scan) ---
         self._order_by_id: Dict[int, Order] = {o.id: o for o in self.inst.orders}
         self._rack_by_id: Dict[int, Rack] = {r.id: r for r in self.inst.racks}
         self._item_to_racks: Dict[int, List[int]] = {}
@@ -41,7 +40,6 @@ class OPT_Dynamic_Solution:
             for item in r.items:
                 self._item_to_racks.setdefault(item, []).append(r.id)
 
-        # --- DP bookkeeping ---
         self.incumbent = float("inf")
         self.predecessor: Dict[State, Tuple[State, int]] = {}
         self.generated_states: Set[State] = set()
@@ -50,18 +48,15 @@ class OPT_Dynamic_Solution:
         self._processed_completely_cache: Dict[int, Set[int]] = {}
         self._processed_partially_cache: Dict[int, Set[int]] = {}
 
-        # --- History (for plotting) ---
         self.pruning_history: List[Tuple[float, float]] = []
         self.incumbent_history: List[Tuple[float, int]] = []
 
-        # --- Coverage matrix ---
         self.coverage_dense_matrix = self._build_sparse_matrices()
         self.order_sizes = np.asarray(self.item_order_sparse_matrix.sum(axis=1)).ravel()
         self.completely_matrix = self.coverage_dense_matrix == self.order_sizes[None, :]
         self.partial_matrix = (self.coverage_dense_matrix > 0) & (~self.completely_matrix)
 
         # --- Statistics ---
-        # self.start_time: float | None = None
         self.statistic = {
             "n_pruning": 0,
             "n_states_generated": 0,
@@ -71,10 +66,6 @@ class OPT_Dynamic_Solution:
             "total_runtime": 0.0,
             "incumbent": 0,
         }
-
-    # ------------------------------------------------------------------ #
-    #  Public API                                                         #
-    # ------------------------------------------------------------------ #
 
     def run(self, use_lower_bound: bool = True):
         """Run the DP solver.
@@ -103,10 +94,6 @@ class OPT_Dynamic_Solution:
     def run_DP_without(self):
         """Run DP **without** lower-bound pruning (backward-compatible alias)."""
         self.run(use_lower_bound=False)
-
-    # ------------------------------------------------------------------ #
-    #  Core DP recursion (unified)                                        #
-    # ------------------------------------------------------------------ #
 
     def _dynamic_programming(self, state: State, gamma: int, use_lower_bound: bool):
         """Unified DP recursion.
@@ -355,17 +342,17 @@ class OPT_Dynamic_Solution:
         for r in self.inst.racks:
             ri = self.racks_idx[r.id]
             if not eligible_all[ri]:
-                scored.append((float("-inf"), float("-inf"), np.random.random(), r.id))
+                scored.append((float("-inf"), float("-inf"), len(r.items), r.id))
             else:
-                scored.append((pick_for_Y_all[ri], pick_unproc_all[ri], np.random.random(), r.id))
+                scored.append((pick_for_Y_all[ri], pick_unproc_all[ri], len(r.items), r.id))
 
         scored.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
         return [r_id for (_, _, _, r_id) in scored]
 
     def _processed_completely_by_r(self, r_id: int) -> Set[int]:
         """Orders whose items are entirely contained in rack *r_id*."""
-        if r_id in self._processed_completely_cache:
-            return self._processed_completely_cache[r_id]
+        # if r_id in self._processed_completely_cache:
+        #     return self._processed_completely_cache[r_id]
 
         ri = self.racks_idx[r_id]
         mask = self.completely_matrix[ri]
@@ -376,8 +363,8 @@ class OPT_Dynamic_Solution:
 
     def _processed_partially_by_r(self, r_id: int) -> Set[int]:
         """Orders that share *some* (but not all) items with rack *r_id*."""
-        if r_id in self._processed_partially_cache:
-            return self._processed_partially_cache[r_id]
+        # if r_id in self._processed_partially_cache:
+        #     return self._processed_partially_cache[r_id]
 
         ri = self.racks_idx[r_id]
         mask = self.partial_matrix[ri]

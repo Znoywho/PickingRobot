@@ -105,17 +105,27 @@ def print_table(results):
 
 
 def main():
-    TIME_LIMIT = 100.0  # seconds per solver run
+    TIME_LIMIT = 300.0  # seconds per solver run
 
     test_cases = [
         # (label, instance_or_generator)
         ("Paper Example (5i/8o/3r)", Paper_Example()),
         ("Small (10i/8o/5r, B=2)", generate_instance(n_items=10, n_orders=8, n_racks=5, capacity=2)),
         ("Medium (15i/10o/8r, B=2)", generate_instance(n_items=15, n_orders=10, n_racks=8, capacity=2)),
-        ("Medium (20i/12o/8r, B=3)", generate_instance(n_items=20, n_orders=12, n_racks=8, capacity=3)),
+        (
+            "Medium (20i/12o/8r, B=3)",
+            generate_instance(n_items=20, n_orders=12, n_racks=8, capacity=3, avg_items_per_order=2),
+        ),
         ("Large (30i/15o/10r, B=3)", generate_instance(n_items=30, n_orders=15, n_racks=10, capacity=3)),
-        ("Large (50i/20o/12r, B=3)", generate_instance(n_items=50, n_orders=20, n_racks=12, capacity=3)),
-        ("XLarge (100i/30o/15r, B=3)", generate_instance(n_items=100, n_orders=30, n_racks=15, capacity=3)),
+        (
+            "Large (50i/20o/12r, B=3)",
+            generate_instance(n_items=50, n_orders=20, n_racks=12, capacity=3, avg_items_per_order=2),
+        ),
+        (
+            "XLarge (100i/30o/15r, B=3)",
+            generate_instance(n_items=100, n_orders=30, n_racks=15, capacity=3, avg_items_per_order=3),
+        ),
+        # ("XLargeLarge (1000i/100o/100r, B=3)", generate_instance(n_items=1000, n_orders=100, n_racks=100, capacity=5)),
     ]
 
     print(f"\n{'=' * 80}")
