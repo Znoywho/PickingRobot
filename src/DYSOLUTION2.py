@@ -407,10 +407,6 @@ class OPT_Dynamic_Solution:
         print(f"States explored: {explored}")
         print(f"Incumbent (rack visits): {self.incumbent}")
 
-    # ------------------------------------------------------------------ #
-    #  Solution reconstruction                                            #
-    # ------------------------------------------------------------------ #
-
     def reconstruct(self):
         """Trace predecessor links to print the full solution path."""
         final_state: State = (self.orders, frozenset(), frozenset())
@@ -420,7 +416,6 @@ class OPT_Dynamic_Solution:
             print("No solution found (time limit or infeasible).")
             return
 
-        # Walk backwards to build path
         node = self.predecessor[final_state]
         path: List[Tuple[int, State]] = [(node[1], node[0])]
 
@@ -481,8 +476,8 @@ if __name__ == "__main__":
     pp.display_orders()
     print("RACKS:")
     pp.display_racks()
-
-    solver = OPT_Dynamic_Solution(pp, time_limit=50)
+    news = generate_instance(n_items=50, n_orders=30, n_racks=10, capacity=3)
+    solver = OPT_Dynamic_Solution(news, time_limit=100)
 
     print("\n>>> Running DP WITH lower-bound pruning:")
     solver.run(use_lower_bound=True)
