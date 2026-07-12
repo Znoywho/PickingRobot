@@ -551,4 +551,4 @@ if __name__ == "__main__":
     sl = Dynamic_solution(pp, 50)
 
     sl.run_DP()
-    print(sl.incumbent_history)
+    sl.reconstuct()

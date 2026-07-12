@@ -477,8 +477,9 @@ if __name__ == "__main__":
     print("RACKS:")
     pp.display_racks()
     news = generate_instance(n_items=50, n_orders=30, n_racks=10, capacity=3)
-    solver = OPT_Dynamic_Solution(news, time_limit=100)
+    solver = OPT_Dynamic_Solution(pp, time_limit=100)
 
     print("\n>>> Running DP WITH lower-bound pruning:")
     solver.run(use_lower_bound=True)
     print(f"Incumbent history: {solver.incumbent_history}")
+    solver.reconstruct()

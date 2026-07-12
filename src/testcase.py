@@ -15,7 +15,7 @@ dataset = [
     [50, 50, 10, 20],
 ]
 
-time_limit = 600
+time_limit = 100.0
 all_results = []
 
 for i, (n_orders, n_racks, capacity, n_items) in enumerate(dataset):
